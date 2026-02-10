@@ -1,0 +1,69 @@
+import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { Bell, User, LogOut } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import api from '../utils/api'
+
+const Navbar = () => {
+  const { user, logout } = useAuth()
+  const [unreadCount, setUnreadCount] = useState(0)
+
+  useEffect(() => {
+    fetchUnreadCount()
+  }, [])
+
+  const fetchUnreadCount = async () => {
+    try {
+      const response = await api.get('/notifications?unread=true')
+      setUnreadCount(response.data.unreadCount)
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
+    }
+  }
+
+  return (
+    <nav className="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center">
+            <Link to="/dashboard" className="flex items-center space-x-2">
+              <div className="text-2xl font-bold text-primary-600">♻️ WasteZero</div>
+            </Link>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <Link
+              to="/notifications"
+              className="relative p-2 text-gray-600 hover:text-primary-600 rounded-full hover:bg-gray-100"
+            >
+              <Bell className="w-6 h-6" />
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              to="/profile"
+              className="flex items-center space-x-2 p-2 text-gray-700 hover:text-primary-600 rounded-lg hover:bg-gray-100"
+            >
+              <User className="w-6 h-6" />
+              <span className="hidden md:inline">{user?.name}</span>
+            </Link>
+
+            <button
+              onClick={logout}
+              className="flex items-center space-x-2 p-2 text-gray-700 hover:text-red-600 rounded-lg hover:bg-gray-100"
+            >
+              <LogOut className="w-6 h-6" />
+              <span className="hidden md:inline">Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  )
+}
+
+export default Navbar
