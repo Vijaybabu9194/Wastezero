@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Agent = require('../models/Agent');
 const jwt = require('jsonwebtoken');
+const { generateOTP, sendOTPEmail } = require('../config/emailConfig');
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -37,6 +38,10 @@ exports.register = async (req, res) => {
     const allowedRoles = ['user', 'agent'];
     const userRole = allowedRoles.includes(role) ? role : 'user';
     
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    
     // Create user
     const user = await User.create({
       name,
@@ -44,33 +49,32 @@ exports.register = async (req, res) => {
       password,
       phone,
       role: userRole,
-      address
+      address,
+      otp,
+      otpExpiry,
+      isEmailVerified: false
     });
     
-    // If registering as agent, create agent profile
-    if (role === 'agent' && req.body.agentDetails) {
-      await Agent.create({
-        userId: user._id,
-        ...req.body.agentDetails
+    // Send OTP email
+    const emailResult = await sendOTPEmail(email, otp, name, 'registration');
+    
+    if (!emailResult.success) {
+      // Delete user if email failed
+      await User.findByIdAndDelete(user._id);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email. Please try again.'
       });
     }
     
-    // Generate token
-    const token = generateToken(user._id);
-    
     res.status(201).json({
       success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone,
-        address: user.address
-      }
+      message: 'Registration successful. Please verify your email with the OTP sent to your email address.',
+      userId: user._id,
+      email: user.email
     });
   } catch (error) {
+    console.error('Registration error:', error);
     res.status(500).json({
       success: false,
       message: error.message
@@ -83,7 +87,7 @@ exports.register = async (req, res) => {
 // @access  Public
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, userType } = req.body;
     
     // Validate email and password
     if (!email || !password) {
@@ -121,6 +125,209 @@ exports.login = async (req, res) => {
       });
     }
     
+    // For admin, allow direct login without OTP
+    if (user.role === 'admin') {
+      const token = generateToken(user._id);
+      
+      return res.status(200).json({
+        success: true,
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          phone: user.phone,
+          address: user.address,
+          wasteStats: user.wasteStats
+        }
+      });
+    }
+    
+    // For user/agent, require account type selection
+    if (!userType) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please select your account type (User or Agent)'
+      });
+    }
+    
+    // Verify user type matches
+    if (userType !== user.role) {
+      return res.status(401).json({
+        success: false,
+        message: `Invalid credentials. Please select the correct account type.`
+      });
+    }
+    
+    // Generate OTP for user/agent
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    
+    // Save OTP to user
+    user.otp = otp;
+    user.otpExpiry = otpExpiry;
+    await user.save();
+    
+    // Send OTP email
+    const emailResult = await sendOTPEmail(email, otp, user.name, 'login');
+    
+    if (!emailResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email. Please try again.'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent to your email address. Please verify to continue.',
+      userId: user._id,
+      email: user.email,
+      requiresOTP: true
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Verify OTP for registration
+// @route   POST /api/auth/verify-registration-otp
+// @access  Public
+exports.verifyRegistrationOTP = async (req, res) => {
+  try {
+    const { userId, otp } = req.body;
+    
+    if (!userId || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide user ID and OTP'
+      });
+    }
+    
+    // Find user with OTP
+    const user = await User.findById(userId).select('+otp +otpExpiry');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Check if OTP is valid
+    if (!user.otp || user.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP'
+      });
+    }
+    
+    // Check if OTP is expired
+    if (user.otpExpiry < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP has expired. Please request a new one.'
+      });
+    }
+    
+    // Mark email as verified and clear OTP
+    user.isEmailVerified = true;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+    
+    // If registering as agent, create agent profile
+    if (user.role === 'agent') {
+      const existingAgent = await Agent.findOne({ userId: user._id });
+      if (!existingAgent) {
+        await Agent.create({
+          userId: user._id,
+          status: 'pending'
+        });
+      }
+    }
+    
+    // Generate token
+    const token = generateToken(user._id);
+    
+    // Get agent details if user is an agent
+    let agentDetails = null;
+    if (user.role === 'agent') {
+      agentDetails = await Agent.findOne({ userId: user._id });
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'Email verified successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        address: user.address,
+        isEmailVerified: user.isEmailVerified,
+        agentDetails
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Verify OTP for login
+// @route   POST /api/auth/verify-login-otp
+// @access  Public
+exports.verifyLoginOTP = async (req, res) => {
+  try {
+    const { userId, otp } = req.body;
+    
+    if (!userId || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide user ID and OTP'
+      });
+    }
+    
+    // Find user with OTP
+    const user = await User.findById(userId).select('+otp +otpExpiry');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Check if OTP is valid
+    if (!user.otp || user.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid OTP'
+      });
+    }
+    
+    // Check if OTP is expired
+    if (user.otpExpiry < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: 'OTP has expired. Please login again.'
+      });
+    }
+    
+    // Clear OTP
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+    
     // Generate token
     const token = generateToken(user._id);
     
@@ -141,8 +348,62 @@ exports.login = async (req, res) => {
         phone: user.phone,
         address: user.address,
         wasteStats: user.wasteStats,
+        isEmailVerified: user.isEmailVerified,
         agentDetails
       }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// @desc    Resend OTP
+// @route   POST /api/auth/resend-otp
+// @access  Public
+exports.resendOTP = async (req, res) => {
+  try {
+    const { userId, purpose } = req.body; // purpose: 'registration' or 'login'
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide user ID'
+      });
+    }
+    
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Generate new OTP
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    
+    user.otp = otp;
+    user.otpExpiry = otpExpiry;
+    await user.save();
+    
+    // Send OTP email
+    const emailResult = await sendOTPEmail(user.email, otp, user.name, purpose || 'verification');
+    
+    if (!emailResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send verification email. Please try again.'
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'OTP has been resent to your email address'
     });
   } catch (error) {
     res.status(500).json({
