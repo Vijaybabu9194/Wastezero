@@ -15,6 +15,7 @@ const pickupRoutes = require('./routes/pickupRoutes');
 const agentRoutes = require('./routes/agentRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const opportunityRoutes = require('./routes/opportunityRoutes');
 
 // Initialize express app
 const app = express();
@@ -55,6 +56,7 @@ app.use('/api/pickups', pickupRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/opportunities', opportunityRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

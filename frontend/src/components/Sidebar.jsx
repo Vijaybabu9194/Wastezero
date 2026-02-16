@@ -7,7 +7,8 @@ import {
   BarChart3,
   Users,
   Truck,
-  Settings
+  Settings,
+  Heart
 } from 'lucide-react'
 
 const Sidebar = () => {
@@ -17,18 +18,21 @@ const Sidebar = () => {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/schedule-pickup', icon: Calendar, label: 'Schedule Pickup' },
     { to: '/pickups', icon: Package, label: 'My Pickups' },
+    { to: '/opportunities', icon: Heart, label: 'Volunteer' },
     { to: '/profile', icon: Settings, label: 'Settings' }
   ]
 
   const agentLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/pickups', icon: Truck, label: 'Assigned Pickups' },
+    { to: '/opportunities', icon: Heart, label: 'Volunteer' },
     { to: '/profile', icon: Settings, label: 'Settings' }
   ]
 
   const adminLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/pickups', icon: Package, label: 'All Pickups' },
+    { to: '/opportunities', icon: Heart, label: 'Opportunities' },
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/agents', icon: Truck, label: 'Agents' },
     { to: '/reports', icon: BarChart3, label: 'Reports' }

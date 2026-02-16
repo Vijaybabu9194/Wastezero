@@ -12,6 +12,12 @@ import Pickups from './pages/Pickups'
 import PickupDetail from './pages/PickupDetail'
 import Profile from './pages/Profile'
 import Notifications from './pages/Notifications'
+import Opportunities from './pages/Opportunities'
+import OpportunityDetail from './pages/OpportunityDetail'
+import ManageOpportunity from './pages/ManageOpportunity'
+import Users from './pages/Users'
+import Agents from './pages/Agents'
+import Reports from './pages/Reports'
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute'
@@ -41,6 +47,17 @@ function App() {
         <Route path="/pickups/:id" element={<PickupDetail />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/notifications" element={<Notifications />} />
+        
+        {/* Opportunity Routes */}
+        <Route path="/opportunities" element={<Opportunities />} />
+        <Route path="/opportunities/:id" element={<OpportunityDetail />} />
+        <Route path="/opportunities/create" element={<ManageOpportunity />} />
+        <Route path="/opportunities/edit/:id" element={<ManageOpportunity />} />
+        
+        {/* Admin Routes */}
+        <Route path="/users" element={<Users />} />
+        <Route path="/agents" element={<Agents />} />
+        <Route path="/reports" element={<Reports />} />
       </Route>
       
       {/* Default Route */}
