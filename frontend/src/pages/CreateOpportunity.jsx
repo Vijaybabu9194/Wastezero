@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../utils/api";
+import axios from "axios";
 import toast from "react-hot-toast";
 
 const CreateOpportunity = () => {
@@ -12,6 +12,8 @@ const CreateOpportunity = () => {
     requiredSkills: "",
     duration: "",
     location: "",
+    startDate: "",
+    endDate: "",
     status: "active"
   });
 
@@ -26,15 +28,29 @@ const CreateOpportunity = () => {
     e.preventDefault();
 
     try {
-      await api.post("/opportunities", {
-        ...formData,
-        requiredSkills: formData.requiredSkills.split(",")
+      await axios.post("http://localhost:5000/api/opportunities/create", {
+        title: formData.title,
+        description: formData.description,
+        requiredSkills: formData.requiredSkills
+          ? formData.requiredSkills.split(",").map(skill => skill.trim())
+          : [],
+        duration: formData.duration,
+        location: {
+          address: formData.location
+        },
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        status: formData.status
       });
 
       toast.success("Opportunity created successfully!");
-      navigate("/manage-opportunities");
+      navigate("/opportunities");
+
     } catch (error) {
-      toast.error("Error creating opportunity");
+      console.error("Create opportunity error:", error.response?.data);
+      toast.error(
+        error.response?.data?.message || "Error creating opportunity"
+      );
     }
   };
 
@@ -51,6 +67,7 @@ const CreateOpportunity = () => {
           name="title"
           placeholder="Title"
           className="w-full border p-3 rounded-lg"
+          value={formData.title}
           onChange={handleChange}
           required
         />
@@ -60,6 +77,7 @@ const CreateOpportunity = () => {
           placeholder="Description"
           className="w-full border p-3 rounded-lg"
           rows="4"
+          value={formData.description}
           onChange={handleChange}
           required
         />
@@ -69,6 +87,7 @@ const CreateOpportunity = () => {
           name="requiredSkills"
           placeholder="Required Skills (comma separated)"
           className="w-full border p-3 rounded-lg"
+          value={formData.requiredSkills}
           onChange={handleChange}
         />
 
@@ -77,6 +96,7 @@ const CreateOpportunity = () => {
           name="duration"
           placeholder="Duration"
           className="w-full border p-3 rounded-lg"
+          value={formData.duration}
           onChange={handleChange}
         />
 
@@ -85,12 +105,44 @@ const CreateOpportunity = () => {
           name="location"
           placeholder="Location"
           className="w-full border p-3 rounded-lg"
+          value={formData.location}
           onChange={handleChange}
         />
+
+        {/* NEW START DATE FIELD */}
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">
+            Start Date
+          </label>
+          <input
+            type="date"
+            name="startDate"
+            className="w-full border p-3 rounded-lg"
+            value={formData.startDate}
+            onChange={handleChange}
+            required
+          />
+        </div>
+
+        {/* NEW END DATE FIELD */}
+        <div>
+          <label className="block mb-1 font-medium text-gray-700">
+            End Date
+          </label>
+          <input
+            type="date"
+            name="endDate"
+            className="w-full border p-3 rounded-lg"
+            value={formData.endDate}
+            onChange={handleChange}
+            required
+          />
+        </div>
 
         <select
           name="status"
           className="w-full border p-3 rounded-lg"
+          value={formData.status}
           onChange={handleChange}
         >
           <option value="active">Open</option>
