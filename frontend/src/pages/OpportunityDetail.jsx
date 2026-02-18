@@ -133,7 +133,8 @@ const OpportunityDetail = () => {
       </button>
 
       {/* Main Content */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-md border border-green-100 rounded-2xl shadow-lg overflow-hidden">
+
         {/* Image */}
         {opportunity.imageUrl && (
           <img
@@ -172,6 +173,24 @@ const OpportunityDetail = () => {
                 <p className="font-semibold text-gray-800">Duration</p>
                 <p className="text-gray-600">{formatDate(opportunity.startDate)} - {formatDate(opportunity.endDate)}</p>
                 <p className="text-sm text-gray-500 mt-1">{opportunity.duration}</p>
+                {/* Availability Progress Bar */}
+<div className="w-full bg-gray-200 rounded-full h-3 mt-3">
+  <div
+    className={`h-3 rounded-full transition-all duration-500 ${
+      opportunity.availableSpots === 0
+        ? "bg-red-500"
+        : opportunity.availableSpots < opportunity.maxVolunteers * 0.3
+        ? "bg-yellow-500"
+        : "bg-green-500"
+    }`}
+    style={{
+      width: `${
+        (opportunity.availableSpots / opportunity.maxVolunteers) * 100
+      }%`
+    }}
+  ></div>
+</div>
+
               </div>
             </div>
 
@@ -301,7 +320,8 @@ const OpportunityDetail = () => {
               ) : opportunity.status === 'active' ? (
                 <button
                   onClick={handleApply}
-                  className="w-full bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition"
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
+
                 >
                   Apply for this Opportunity
                 </button>
@@ -321,7 +341,8 @@ const OpportunityDetail = () => {
                 {opportunity.currentVolunteers.map((volunteer) => (
                   <div
                     key={volunteer._id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-5 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition"
+
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">

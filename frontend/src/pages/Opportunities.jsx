@@ -124,7 +124,7 @@ const Opportunities = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">Volunteering Opportunities</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Opportunities</h1>
         {user?.role === 'admin' && (
           <button
             onClick={() => navigate('/opportunities/create')}
@@ -209,7 +209,8 @@ const Opportunities = () => {
           {opportunities.map((opportunity) => (
             <div
               key={opportunity._id}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition"
+              className="group bg-white/70 backdrop-blur-md border border-green-100 rounded-2xl shadow-md hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 overflow-hidden"
+
             >
               {/* Image */}
               {opportunity.imageUrl && (
@@ -224,13 +225,15 @@ const Opportunities = () => {
                 {/* Header */}
                 <div>
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-xl font-semibold text-gray-800 line-clamp-2">
+                    <h3 className="text-xl font-bold text-gray-800 group-hover:text-green-700 transition">
+
                       {opportunity.title}
                     </h3>
                   </div>
                   
                   <div className="flex gap-2 mb-3">
-                    <span className={`text-xs px-2 py-1 rounded-full ${getCategoryColor(opportunity.category)}`}>
+                    <span className={`text-xs font-semibold px-3 py-1 rounded-full shadow-sm ${getCategoryColor(opportunity.category)}`}>
+
                       {opportunity.category.replace('-', ' ')}
                     </span>
                     <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(opportunity.status)}`}>
@@ -267,6 +270,16 @@ const Opportunities = () => {
                     </span>
                   </div>
                 </div>
+                
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+  <div
+    className="bg-green-500 h-2 rounded-full transition-all duration-500"
+    style={{
+      width: `${(opportunity.availableSpots / opportunity.maxVolunteers) * 100}%`
+    }}
+  ></div>
+</div>
+
 
                 {/* Skills */}
                 {opportunity.requiredSkills?.length > 0 && (
@@ -335,7 +348,8 @@ const Opportunities = () => {
                       ) : (
                         <button
                           onClick={() => handleApply(opportunity._id)}
-                          className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+                          className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
+
                         >
                           Apply Now
                         </button>

@@ -1,3 +1,8 @@
+import CreateOpportunity from './pages/CreateOpportunity'
+import EditOpportunity from './pages/EditOpportunity'
+
+
+
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 
@@ -51,8 +56,9 @@ function App() {
         {/* Opportunity Routes */}
         <Route path="/opportunities" element={<Opportunities />} />
         <Route path="/opportunities/:id" element={<OpportunityDetail />} />
-        <Route path="/opportunities/create" element={<ManageOpportunity />} />
-        <Route path="/opportunities/edit/:id" element={<ManageOpportunity />} />
+        <Route path="/opportunities/create" element={<CreateOpportunity />} />
+<Route path="/opportunities/edit/:id" element={<EditOpportunity />} />
+
         
         {/* Admin Routes */}
         <Route path="/users" element={<Users />} />
