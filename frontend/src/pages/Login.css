@@ -1,0 +1,123 @@
+/* =====================================
+   🌿 WasteZero Premium Light UI
+   ===================================== */
+
+/* ===============================
+   🌊 Animated Soft Eco Background
+   =============================== */
+
+.login-aurora {
+  background: linear-gradient(
+    135deg,
+    #d4fcf7 0%,
+    #e0f7fa 25%,
+    #e8f5e9 50%,
+    #f3e8ff 75%,
+    #ccfbf1 100%
+  );
+  background-size: 300% 300%;
+  animation: gradientMove 12s ease infinite;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ===============================
+   💎 Premium Frosted Glass Card
+   =============================== */
+
+.premium-glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  box-shadow: 0 20px 50px rgba(16, 185, 129, 0.15);
+  transition: all 0.4s ease;
+}
+
+.premium-glass-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 30px 60px rgba(16, 185, 129, 0.25);
+}
+
+/* ===============================
+   ✨ Logo Soft Glow
+   =============================== */
+
+.text-6xl {
+  text-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+  animation: floatLogo 3s ease-in-out infinite;
+}
+
+@keyframes floatLogo {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ===============================
+   🌿 Input Styling
+   =============================== */
+
+input {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  transition: all 0.3s ease;
+}
+
+input:focus {
+  border: 1px solid rgba(16, 185, 129, 0.8) !important;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+  transform: scale(1.02);
+}
+
+/* ===============================
+   🌿 Frosted Glass Button
+   =============================== */
+
+.frosted-btn {
+  background: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.3),
+    rgba(5, 150, 105, 0.3)
+  );
+  border: 1px solid rgba(16, 185, 129, 0.6);
+  color: #064e3b;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.frosted-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.4);
+  border: 1px solid rgba(16, 185, 129, 0.9);
+}
+
+.frosted-btn:active {
+  transform: scale(0.97);
+}
+
+/* ===============================
+   🌿 Animated Blobs (Background)
+   =============================== */
+
+@keyframes floatBlob {
+  0% { transform: translate(0px, 0px) scale(1); }
+  50% { transform: translate(25px, -35px) scale(1.1); }
+  100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-blob {
+  animation: floatBlob 15s infinite ease-in-out;
+}
+
+/* ===============================
+   🌍 Footer Glow Text
+   =============================== */
+
+p.text-center {
+  text-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}

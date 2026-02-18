@@ -1,3 +1,7 @@
+import "./Login.css";
+
+
+
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -154,7 +158,8 @@ const Login = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="login-aurora min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
@@ -165,7 +170,8 @@ const Login = () => {
       {/* Login Card */}
       <div className="max-w-md w-full relative">
         {/* Glass Morphism Card */}
-        <div className="backdrop-blur-xl bg-white/80 rounded-3xl shadow-2xl border border-white/20 p-8 relative overflow-hidden">
+        <div className="login-glass-card rounded-3xl p-8 relative overflow-hidden">
+
           {/* Decorative Corner Elements */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary-400/20 to-transparent rounded-bl-full"></div>
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-emerald-400/20 to-transparent rounded-tr-full"></div>
@@ -272,7 +278,8 @@ const Login = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-primary-600 to-emerald-600 hover:from-primary-700 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2 relative overflow-hidden group"
+                className="w-full frosted-btn font-bold py-4 px-6 rounded-xl flex items-center justify-center space-x-2"
+
               >
                 <div className="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></div>
                 {loading ? (
