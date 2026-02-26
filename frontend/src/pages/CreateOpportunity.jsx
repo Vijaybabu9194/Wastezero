@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+
 import toast from "react-hot-toast";
+import api from "../utils/api";
 
 const CreateOpportunity = () => {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ const CreateOpportunity = () => {
     e.preventDefault();
 
     try {
-      await axios.post("http://localhost:5000/api/opportunities/create", {
+      await api.post("/opportunities/create", {
         title: formData.title,
         description: formData.description,
         requiredSkills: formData.requiredSkills
