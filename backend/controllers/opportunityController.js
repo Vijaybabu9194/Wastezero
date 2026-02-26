@@ -25,10 +25,10 @@ exports.createOpportunity = async (req, res) => {
     } = req.body;
 
     // Verify user is admin
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'user') {
       return res.status(403).json({
         success: false,
-        message: 'Only administrators can create opportunities'
+        message: 'Only create opportunities'
       });
     }
 
@@ -78,7 +78,7 @@ exports.getAllOpportunities = async (req, res) => {
       filter.status = status;
     } else {
       // By default, show only active opportunities for non-admins
-      if (!req.user || req.user.role !== 'admin') {
+      if (!req.user || req.user.role !== 'user') {
         filter.status = 'active';
         filter.startDate = { $lte: new Date() };
         filter.endDate = { $gte: new Date() };
@@ -288,6 +288,15 @@ exports.deleteOpportunity = async (req, res) => {
 // @access  Private (User)
 exports.applyForOpportunity = async (req, res) => {
   try {
+
+
+    // Only agents can apply
+if (req.user.role !== 'agent') {
+  return res.status(403).json({
+    success: false,
+    message: 'Only agents can apply for opportunities'
+  });
+}
     const opportunity = await Opportunity.findById(req.params.id);
 
     if (!opportunity) {

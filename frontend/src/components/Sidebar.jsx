@@ -32,7 +32,6 @@ const Sidebar = () => {
   const adminLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/pickups', icon: Package, label: 'All Pickups' },
-    { to: '/opportunities', icon: Heart, label: 'Opportunities' },
     { to: '/users', icon: Users, label: 'Users' },
     { to: '/agents', icon: Truck, label: 'Agents' },
     { to: '/reports', icon: BarChart3, label: 'Reports' }
