@@ -40,22 +40,44 @@ const Opportunities = () => {
 
   useEffect(() => {
     fetchOpportunities();
-  }, [filters]);
+  }, [filters, user?.role]);
 
   const fetchOpportunities = async () => {
     try {
       setLoading(true);
+      // Volunteer (agent): only see tasks assigned by NGO
+      if (user?.role === 'agent') {
+        const response = await api.get('/opportunities/match/recommended');
+        setOpportunities(response.data.data || []);
+        return;
+      }
+      // Opportunity poster (user): see only their own opportunities
+      if (user?.role === 'user') {
+        const response = await api.get('/opportunities/admin/my-opportunities');
+        setOpportunities(response.data.data || []);
+        return;
+      }
       const params = new URLSearchParams();
       if (filters.search) params.append('search', filters.search);
       if (filters.category !== 'all') params.append('category', filters.category);
       if (filters.status) params.append('status', filters.status);
 
       const response = await api.get(`/opportunities?${params.toString()}`);
-      setOpportunities(response.data.data);
+      setOpportunities(response.data.data || []);
     } catch (error) {
       toast.error('Error loading opportunities');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleComplete = async (opportunityId) => {
+    try {
+      await api.post(`/opportunities/${opportunityId}/complete`);
+      toast.success('Marked as completed');
+      fetchOpportunities();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Error completing opportunity');
     }
   };
 
@@ -105,12 +127,16 @@ const Opportunities = () => {
 
   const getStatusColor = (status) => {
     const colors = {
-      'active': 'bg-green-100 text-green-800',
-      'draft': 'bg-gray-100 text-gray-800',
+      'pending_review': 'bg-yellow-100 text-yellow-800',
+      'accepted': 'bg-emerald-100 text-emerald-800',
+      'assigned': 'bg-blue-100 text-blue-800',
+      'in_progress': 'bg-yellow-100 text-yellow-800',
       'completed': 'bg-blue-100 text-blue-800',
-      'cancelled': 'bg-red-100 text-red-800'
+      'draft': 'bg-gray-100 text-gray-800',
+      'cancelled': 'bg-red-100 text-red-800',
+      'rejected': 'bg-red-100 text-red-800'
     };
-    return colors[status] || colors.active;
+    return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
   const hasUserApplied = (opportunity) => {
@@ -124,19 +150,22 @@ const Opportunities = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-800">Opportunities</h1>
-        {user?.role === 'admin' && (
+        <h1 className="text-3xl font-bold text-gray-800">
+          {user?.role === 'agent' ? 'My Assigned Tasks' : 'Opportunities'}
+        </h1>
+        {(user?.role === 'admin' || user?.role === 'user') && (
           <button
             onClick={() => navigate('/opportunities/create')}
             className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
           >
             <Plus className="w-5 h-5" />
-            Create Opportunity
+            {user?.role === 'user' ? 'Post Opportunity' : 'Create Opportunity'}
           </button>
         )}
       </div>
 
-      {/* Filters */}
+      {/* Filters - hide for volunteer (they only see assigned) */}
+      {user?.role !== 'agent' && (
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -187,6 +216,7 @@ const Opportunities = () => {
           )}
         </div>
       </div>
+      )}
 
       {/* Opportunities List */}
       {loading ? (
@@ -201,7 +231,9 @@ const Opportunities = () => {
           <p className="text-gray-600">
             {user?.role === 'admin' 
               ? 'Create your first volunteering opportunity to get started!'
-              : 'Check back later for new volunteering opportunities.'}
+              : user?.role === 'agent'
+                ? 'No tasks assigned to you yet. The NGO will assign you opportunities.'
+                : 'Check back later for new volunteering opportunities.'}
           </p>
         </div>
       ) : (
@@ -328,32 +360,45 @@ const Opportunities = () => {
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {hasUserApplied(opportunity) ? (
-                        <button
-                          disabled
-                          className="w-full flex items-center justify-center gap-2 bg-green-100 text-green-700 px-4 py-2 rounded-lg cursor-not-allowed"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          Applied
-                        </button>
-                      ) : opportunity.isFull ? (
-                        <button
-                          disabled
-                          className="w-full bg-gray-400 text-white px-4 py-2 rounded-lg cursor-not-allowed"
-                        >
-                          Opportunity Full
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleApply(opportunity._id)}
-                          className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
-
-                        >
-                          Apply Now
-                        </button>
+                  ) : user?.role === 'agent' ? (
+                    <div className="space-y-2 text-sm">
+                      <p className="text-xs text-gray-500">Assigned by NGO</p>
+                      {opportunity.createdBy && (
+                        <div className="text-xs text-gray-600">
+                          <p className="font-semibold">User: {opportunity.createdBy.name}</p>
+                          <p>{opportunity.createdBy.email}</p>
+                        </div>
                       )}
+                      <button
+                        onClick={() => navigate(`/opportunities/${opportunity._id}`)}
+                        className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View Details
+                      </button>
+                      <button
+                        onClick={() => navigate('/messages', {
+                          state: {
+                            initialUser: opportunity.createdBy,
+                            opportunityId: opportunity._id,
+                            opportunity
+                          }
+                        })}
+                        className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        Message User
+                      </button>
+                      <button
+                        onClick={() => handleComplete(opportunity._id)}
+                        className="w-full flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm"
+                      >
+                        Mark Completed
+                      </button>
+                    </div>
+                  ) : (
+                    // Regular users (opportunity posters) just track status and view details
+                    <div className="space-y-2">
                       <button
                         onClick={() => navigate(`/opportunities/${opportunity._id}`)}
                         className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition"

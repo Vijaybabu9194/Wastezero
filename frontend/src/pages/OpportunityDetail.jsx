@@ -41,12 +41,17 @@ const OpportunityDetail = () => {
   };
 
   const handleApply = async () => {
+    // Direct applications are no longer supported in the new NGO approval flow.
+    toast.error('Direct applications are disabled. Opportunities are assigned by NGOs.');
+  };
+
+  const handleComplete = async () => {
     try {
-      await api.post(`/opportunities/${id}/apply`);
-      toast.success('Application submitted successfully!');
-      fetchOpportunity(); // Refresh
+      await api.post(`/opportunities/${id}/complete`);
+      toast.success('Marked as completed');
+      fetchOpportunity();
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Error applying for opportunity');
+      toast.error(error.response?.data?.message || 'Error completing opportunity');
     }
   };
 
@@ -293,43 +298,54 @@ const OpportunityDetail = () => {
             </div>
           </div>
 
-          {/* Action Buttons for Regular Users */}
-          {user && user.role !== 'admin' && (
+          {/* For regular users, applications are handled via NGO review/assignment, not direct apply */}
+          {user && user.role !== 'admin' && user.role !== 'agent' && (
             <div className="border-t pt-6">
-              {hasUserApplied() ? (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle className="w-6 h-6 text-blue-600" />
-                    <div>
-                      <p className="font-semibold text-blue-900">Application Status</p>
-                      <p className="text-blue-700">
-                        Your application is <span className={`px-2 py-1 rounded ${getStatusColor(getUserApplicationStatus())}`}>
-                          {getUserApplicationStatus()}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : opportunity.isFull ? (
-                <button
-                  disabled
-                  className="w-full bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold cursor-not-allowed"
-                >
-                  Opportunity Full
-                </button>
-              ) : opportunity.status === 'active' ? (
-                <button
-                  onClick={handleApply}
-                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                <p className="text-yellow-800">
+                  This opportunity will be reviewed by an NGO and assigned to a volunteer. You cannot apply directly.
+                </p>
+              </div>
+            </div>
+          )}
 
-                >
-                  Apply for this Opportunity
-                </button>
-              ) : (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
-                  <p className="text-yellow-800">This opportunity is currently not accepting applications.</p>
+          {/* Agent (volunteer) controls */}
+          {user?.role === 'agent' && (
+            <div className="border-t pt-6 space-y-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-blue-900">Assigned Opportunity</p>
+                  <p className="text-sm text-blue-800">
+                    Contact the user and mark this opportunity as completed when your work is done.
+                  </p>
                 </div>
-              )}
+                <div className="flex flex-wrap gap-2">
+                  {opportunity.createdBy && (
+                    <button
+                      onClick={() => navigate('/messages', {
+                        state: {
+                          initialUser: opportunity.createdBy,
+                          opportunityId: opportunity._id,
+                          opportunity
+                        }
+                      })}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 text-sm"
+                    >
+                      <Mail className="w-4 h-4" />
+                      Message User
+                    </button>
+                  )}
+                  {['assigned', 'in_progress'].includes(opportunity.status) && (
+                    <button
+                      onClick={handleComplete}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Mark Completed
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 

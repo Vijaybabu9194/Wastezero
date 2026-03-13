@@ -26,9 +26,14 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'agent', 'admin'],
+    enum: ['user', 'ngo', 'agent', 'admin'],
     default: 'user'
   },
+  // Volunteer skills / preferred waste types (e.g., "plastic", "e-waste")
+  skills: [{
+    type: String,
+    trim: true
+  }],
   address: {
     street: String,
     city: String,

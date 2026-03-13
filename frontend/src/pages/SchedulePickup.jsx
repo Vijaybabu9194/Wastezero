@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../utils/api'
 import toast from 'react-hot-toast'
 import { Calendar, MapPin, Trash2 } from 'lucide-react'
+import HyderabadMap from '../components/HyderabadMap'
 
 const SchedulePickup = () => {
   const navigate = useNavigate()
@@ -67,15 +68,18 @@ const SchedulePickup = () => {
     setLoading(true)
 
     try {
-      // Simple geocoding - in production, use a real geocoding service
-      const lat = 40.7128 + Math.random() * 0.1
-      const lng = -74.0060 + Math.random() * 0.1
+      const { coordinates } = formData.pickupAddress
+      if (!coordinates || !coordinates.lat || !coordinates.lng) {
+        toast.error('Please select a location on the Hyderabad map')
+        setLoading(false)
+        return
+      }
 
       const pickupData = {
         ...formData,
         pickupAddress: {
           ...formData.pickupAddress,
-          coordinates: { lat, lng }
+          coordinates
         },
         wasteCategories: formData.wasteCategories.map(cat => ({
           ...cat,
@@ -182,6 +186,25 @@ const SchedulePickup = () => {
                 className="input-field"
                 placeholder="ZIP Code"
                 required
+              />
+            </div>
+
+            {/* Hyderabad Map Picker */}
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-gray-600">
+                Click on the map of Hyderabad to set the exact pickup location.
+              </p>
+              <HyderabadMap
+                marker={formData.pickupAddress.coordinates}
+                onSelect={(coords) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    pickupAddress: {
+                      ...prev.pickupAddress,
+                      coordinates: coords
+                    }
+                  }))
+                }
               />
             </div>
           </div>

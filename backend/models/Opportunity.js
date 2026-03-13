@@ -64,9 +64,31 @@ const opportunitySchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['draft', 'active', 'completed', 'cancelled'],
-    default: 'active'
+    enum: [
+      'pending_review',   // waiting for NGO review
+      'accepted',         // NGO has accepted to coordinate
+      'assigned',         // assigned to a volunteer
+      'in_progress',      // volunteer actively working
+      'completed',        // completed by volunteer
+      'draft',
+      'cancelled',
+      'rejected'          // rejected by NGO
+    ],
+    default: 'pending_review'
   },
+  // NGO who accepted/reviewed this opportunity (coordinator)
+  acceptedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  acceptedAt: { type: Date, default: null },
+  // Volunteer(s) assigned by NGO (task executor)
+  assignedTo: [{
+    volunteer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    assignedAt: { type: Date, default: Date.now },
+    assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  }],
   category: {
     type: String,
     enum: ['waste-collection', 'awareness', 'recycling', 'cleanup-drive', 'education', 'other'],
@@ -90,6 +112,10 @@ const opportunitySchema = new mongoose.Schema({
     trim: true
   },
   requirements: {
+    type: String,
+    trim: true
+  },
+  rejectionReason: {
     type: String,
     trim: true
   }

@@ -34,8 +34,8 @@ exports.register = async (req, res) => {
       });
     }
     
-    // Validate role - only 'user' and 'agent' allowed
-    const allowedRoles = ['user', 'agent'];
+    // Validate role - 'user', 'ngo', and 'agent' allowed (admin created separately)
+    const allowedRoles = ['user', 'ngo', 'agent'];
     const userRole = allowedRoles.includes(role) ? role : 'user';
     
     // Generate OTP
@@ -144,16 +144,16 @@ exports.login = async (req, res) => {
       });
     }
     
-    // For user/agent, require account type selection
+    // For user/ngo/agent, require account type selection
     if (!userType) {
       return res.status(400).json({
         success: false,
-        message: 'Please select your account type (User or Agent)'
+        message: 'Please select your account type (User, NGO, or Agent)'
       });
     }
     
-    // Verify user type matches
-    if (userType !== user.role) {
+    // Verify user type matches (user, ngo, or agent)
+    if (!['user', 'ngo', 'agent'].includes(userType) || userType !== user.role) {
       return res.status(401).json({
         success: false,
         message: `Invalid credentials. Please select the correct account type.`
@@ -240,13 +240,17 @@ exports.verifyRegistrationOTP = async (req, res) => {
     user.otpExpiry = undefined;
     await user.save();
     
-    // If registering as agent, create agent profile
+    // If registering as agent, create agent profile (minimal record, complete profile later)
     if (user.role === 'agent') {
       const existingAgent = await Agent.findOne({ userId: user._id });
       if (!existingAgent) {
         await Agent.create({
           userId: user._id,
-          status: 'pending'
+          vehicleType: 'truck',
+          vehicleNumber: 'PENDING',
+          licenseNumber: 'PENDING',
+          status: 'offline',
+          isVerified: false
         });
       }
     }
@@ -418,13 +422,20 @@ exports.resendOTP = async (req, res) => {
 // @access  Private
 exports.getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    
+    const userId = req.user._id || req.user.id;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' });
+    }
+
     let agentDetails = null;
     if (user.role === 'agent') {
       agentDetails = await Agent.findOne({ userId: user._id });
     }
-    
+
     res.status(200).json({
       success: true,
       user: {
@@ -433,6 +444,7 @@ exports.getMe = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('getMe error:', error);
     res.status(500).json({
       success: false,
       message: error.message

@@ -14,7 +14,7 @@ const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    userType: '' // 'user' or 'agent'
+    userType: '' // 'user', 'ngo', or 'agent'
   })
   const [otpData, setOtpData] = useState({
     userId: '',
@@ -74,7 +74,7 @@ const Login = () => {
       } else {
         // Show specific message for missing account type
         if (data.message && data.message.includes('account type')) {
-          toast.error('Please select your account type (User or Agent)')
+          toast.error('Please select your account type (User, NGO, or Volunteer)')
         } else {
           toast.error(data.message)
         }
@@ -201,7 +201,7 @@ const Login = () => {
                 <p className="text-xs text-gray-500 mb-3">
                   Select your account type (Admin users can skip this)
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, userType: 'user' })}
@@ -216,6 +216,18 @@ const Login = () => {
                   </button>
                   <button
                     type="button"
+                    onClick={() => setFormData({ ...formData, userType: 'ngo' })}
+                    className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
+                      formData.userType === 'ngo'
+                        ? 'border-primary-500 bg-primary-50 text-primary-700'
+                        : 'border-gray-200 bg-white hover:border-primary-200'
+                    }`}
+                  >
+                    <ShieldCheck className="w-8 h-8 mb-2" />
+                    <span className="font-semibold">NGO</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setFormData({ ...formData, userType: 'agent' })}
                     className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${
                       formData.userType === 'agent'
@@ -224,7 +236,7 @@ const Login = () => {
                     }`}
                   >
                     <Briefcase className="w-8 h-8 mb-2" />
-                    <span className="font-semibold">Agent</span>
+                    <span className="font-semibold">Volunteer</span>
                   </button>
                 </div>
               </div>

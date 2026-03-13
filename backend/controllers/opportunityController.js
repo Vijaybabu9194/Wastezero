@@ -2,9 +2,29 @@ const Opportunity = require('../models/Opportunity');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 
-// @desc    Create a new volunteering opportunity
+// Utility: Haversine distance in kilometers between two lat/lng points
+const haversineDistanceKm = (coord1, coord2) => {
+  if (!coord1 || !coord2 || coord1.lat == null || coord1.lng == null || coord2.lat == null || coord2.lng == null) {
+    return null;
+  }
+
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const R = 6371; // km
+  const dLat = toRad(coord2.lat - coord1.lat);
+  const dLng = toRad(coord2.lng - coord1.lng);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(coord1.lat)) *
+      Math.cos(toRad(coord2.lat)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// @desc    Create a new volunteering opportunity (User posts, or Admin)
 // @route   POST /api/opportunities
-// @access  Private (Admin only)
+// @access  Private (User or Admin)
 exports.createOpportunity = async (req, res) => {
   try {
     const {
@@ -24,20 +44,41 @@ exports.createOpportunity = async (req, res) => {
       status
     } = req.body;
 
-    // Verify user is admin
-    if (req.user.role !== 'admin') {
+    // User (opportunity poster) or Admin can create
+    if (req.user.role !== 'admin' && req.user.role !== 'user') {
       return res.status(403).json({
         success: false,
-        message: 'Only administrators can create opportunities'
+        message: 'Only users (opportunity posters) or administrators can create opportunities'
       });
+    }
++
+    // Enforce initial status based on role:
+    // - Regular users: always start in pending_review (NGO must review)
+    // - Admins: may explicitly set a status, otherwise default to pending_review
+    let initialStatus = 'pending_review';
+    if (req.user.role === 'admin' && status) {
+      initialStatus = status;
+    }
+
+    // Ensure we have coordinates for mapping; if missing, generate around Hyderabad
+    let finalLocation = location;
+    if (location && (!location.coordinates || location.coordinates.lat == null || location.coordinates.lng == null)) {
+      const baseLat = 17.3850;
+      const baseLng = 78.4867;
+      const lat = baseLat + (Math.random() - 0.5) * 0.05;
+      const lng = baseLng + (Math.random() - 0.5) * 0.05;
+      finalLocation = {
+        ...location,
+        coordinates: { lat, lng }
+      };
     }
 
     const opportunity = await Opportunity.create({
       title,
       description,
-      requiredSkills: Array.isArray(requiredSkills) ? requiredSkills : requiredSkills.split(',').map(s => s.trim()),
+      requiredSkills: Array.isArray(requiredSkills) ? requiredSkills : (requiredSkills ? requiredSkills.split(',').map(s => s.trim()) : []),
       duration,
-      location,
+      location: finalLocation,
       startDate,
       endDate,
       maxVolunteers,
@@ -46,7 +87,7 @@ exports.createOpportunity = async (req, res) => {
       contactPhone,
       imageUrl,
       requirements,
-      status: status || 'active',
+      status: initialStatus,
       createdBy: req.user._id
     });
 
@@ -75,11 +116,16 @@ exports.getAllOpportunities = async (req, res) => {
     
     // Filter by status
     if (status) {
-      filter.status = status;
+      // Backwards compatibility: map "active" to the new active statuses
+      if (status === 'active') {
+        filter.status = { $in: ['assigned', 'in_progress'] };
+      } else {
+        filter.status = status;
+      }
     } else {
       // By default, show only active opportunities for non-admins
       if (!req.user || req.user.role !== 'admin') {
-        filter.status = 'active';
+        filter.status = { $in: ['assigned', 'in_progress'] };
         filter.startDate = { $lte: new Date() };
         filter.endDate = { $gte: new Date() };
       }
@@ -171,8 +217,10 @@ exports.updateOpportunity = async (req, res) => {
       });
     }
 
-    // Verify user is admin or creator
-    if (req.user.role !== 'admin' && opportunity.createdBy.toString() !== req.user._id.toString()) {
+    // Verify user is admin, creator (user), or NGO that accepted
+    const isCreator = opportunity.createdBy.toString() === req.user._id.toString();
+    const isNgoOwner = opportunity.acceptedBy && opportunity.acceptedBy.toString() === req.user._id.toString();
+    if (req.user.role !== 'admin' && !isCreator && !isNgoOwner) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this opportunity'
@@ -246,7 +294,7 @@ exports.deleteOpportunity = async (req, res) => {
       });
     }
 
-    // Verify user is admin or creator
+    // Verify user is admin or creator (NGO can update status but delete typically stays with creator/admin)
     if (req.user.role !== 'admin' && opportunity.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -285,66 +333,13 @@ exports.deleteOpportunity = async (req, res) => {
 
 // @desc    Apply for a volunteering opportunity
 // @route   POST /api/opportunities/:id/apply
-// @access  Private (User)
+// @access  Private
 exports.applyForOpportunity = async (req, res) => {
   try {
-    const opportunity = await Opportunity.findById(req.params.id);
-
-    if (!opportunity) {
-      return res.status(404).json({
-        success: false,
-        message: 'Opportunity not found'
-      });
-    }
-
-    // Check if opportunity is active
-    if (opportunity.status !== 'active') {
-      return res.status(400).json({
-        success: false,
-        message: 'This opportunity is not currently active'
-      });
-    }
-
-    // Check if opportunity is full
-    if (opportunity.isFull) {
-      return res.status(400).json({
-        success: false,
-        message: 'This opportunity is already full'
-      });
-    }
-
-    // Check if user already applied
-    const alreadyApplied = opportunity.currentVolunteers.some(
-      v => v.user.toString() === req.user._id.toString()
-    );
-
-    if (alreadyApplied) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already applied for this opportunity'
-      });
-    }
-
-    // Add user to volunteers list
-    opportunity.currentVolunteers.push({
-      user: req.user._id,
-      status: 'pending'
-    });
-
-    await opportunity.save();
-
-    // Create notification for admin
-    await Notification.create({
-      user: opportunity.createdBy,
-      title: 'New Volunteer Application',
-      message: `${req.user.name} has applied for "${opportunity.title}"`,
-      type: 'info'
-    });
-
-    res.json({
-      success: true,
-      message: 'Application submitted successfully',
-      data: opportunity
+    // New flow: volunteers are assigned by NGOs, not via open applications.
+    return res.status(400).json({
+      success: false,
+      message: 'Direct applications are disabled. Opportunities are reviewed by NGOs and assigned to volunteers.'
     });
   } catch (error) {
     console.error('Error applying for opportunity:', error);
@@ -422,6 +417,149 @@ exports.manageVolunteerApplication = async (req, res) => {
   }
 };
 
+// @desc    NGO accepts an opportunity (reviews and takes it under coordination)
+// @route   POST /api/opportunities/:id/accept
+// @access  Private (NGO only)
+exports.acceptOpportunity = async (req, res) => {
+  try {
+    if (req.user.role !== 'ngo') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only NGOs can accept opportunities'
+      });
+    }
+
+    const opportunity = await Opportunity.findById(req.params.id);
+    if (!opportunity) {
+      return res.status(404).json({ success: false, message: 'Opportunity not found' });
+    }
+    if (opportunity.status !== 'pending_review') {
+      return res.status(400).json({
+        success: false,
+        message: 'Opportunity is not pending review'
+      });
+    }
+
+    opportunity.acceptedBy = req.user._id;
+    opportunity.acceptedAt = new Date();
+    opportunity.status = 'accepted';
+    await opportunity.save();
+
+    await Notification.create({
+      user: opportunity.createdBy,
+      title: 'Opportunity Accepted',
+      message: `An NGO has accepted your opportunity "${opportunity.title}". They will assign a volunteer soon.`,
+      type: 'info'
+    });
+
+    res.json({
+      success: true,
+      message: 'Opportunity accepted successfully',
+      data: opportunity
+    });
+  } catch (error) {
+    console.error('Error accepting opportunity:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error accepting opportunity'
+    });
+  }
+};
+
+// @desc    NGO assigns opportunity to a volunteer
+// @route   POST /api/opportunities/:id/assign
+// @access  Private (NGO only)
+exports.assignOpportunity = async (req, res) => {
+  try {
+    if (req.user.role !== 'ngo') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only NGOs can assign opportunities to volunteers'
+      });
+    }
+
+    const { volunteerId } = req.body;
+    if (!volunteerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'volunteerId is required'
+      });
+    }
+
+    const opportunity = await Opportunity.findById(req.params.id)
+      .populate('acceptedBy', '_id');
+    if (!opportunity) {
+      return res.status(404).json({ success: false, message: 'Opportunity not found' });
+    }
+    if (opportunity.acceptedBy?._id?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the NGO that accepted this opportunity can assign volunteers'
+      });
+    }
+
+    // Opportunity must be accepted or still pending review before assignment
+    if (!['accepted', 'pending_review'].includes(opportunity.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Opportunity cannot be assigned in its current status'
+      });
+    }
+
+    const volunteer = await User.findById(volunteerId);
+    if (!volunteer || volunteer.role !== 'agent') {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid volunteer. Must be an agent (volunteer).'
+      });
+    }
+
+    const alreadyAssigned = opportunity.assignedTo.some(
+      a => a.volunteer.toString() === volunteerId
+    );
+    if (alreadyAssigned) {
+      return res.status(400).json({
+        success: false,
+        message: 'Volunteer is already assigned to this opportunity'
+      });
+    }
+
+    opportunity.assignedTo.push({
+      volunteer: volunteerId,
+      assignedBy: req.user._id
+    });
+
+    // Ensure NGO ownership is recorded if not already
+    if (!opportunity.acceptedBy) {
+      opportunity.acceptedBy = req.user._id;
+      opportunity.acceptedAt = new Date();
+    }
+
+    // Once a volunteer is assigned, mark as assigned
+    opportunity.status = 'assigned';
+    await opportunity.save();
+
+    await Notification.create({
+      user: volunteerId,
+      title: 'New Task Assigned',
+      message: `You have been assigned to "${opportunity.title}" by the NGO.`,
+      type: 'info'
+    });
+
+    res.json({
+      success: true,
+      message: 'Volunteer assigned successfully',
+      data: opportunity
+    });
+  } catch (error) {
+    console.error('Error assigning opportunity:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error assigning opportunity'
+    });
+  }
+};
+
 // @desc    Get user's applications
 // @route   GET /api/opportunities/my-applications
 // @access  Private
@@ -458,13 +596,28 @@ exports.getMyApplications = async (req, res) => {
   }
 };
 
-// @desc    Get opportunities created by admin
+// @desc    Get my opportunities (as creator, as NGO coordinator, or as assigned volunteer)
 // @route   GET /api/opportunities/my-opportunities
-// @access  Private (Admin only)
+// @access  Private
 exports.getMyOpportunities = async (req, res) => {
   try {
-    const opportunities = await Opportunity.find({ createdBy: req.user._id })
+    let query;
+    if (req.user.role === 'user' || req.user.role === 'admin') {
+      query = { createdBy: req.user._id };
+    } else if (req.user.role === 'ngo') {
+      query = { acceptedBy: req.user._id };
+    } else if (req.user.role === 'agent') {
+      query = { 'assignedTo.volunteer': req.user._id };
+    } else {
+      query = { createdBy: req.user._id };
+    }
+
+    const opportunities = await Opportunity.find(query)
+      .populate('createdBy', 'name email phone')
+      .populate('acceptedBy', 'name email')
       .populate('currentVolunteers.user', 'name email phone')
+      .populate('assignedTo.volunteer', 'name email phone')
+      .populate('assignedTo.assignedBy', 'name email')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -476,6 +629,197 @@ exports.getMyOpportunities = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching opportunities'
+    });
+  }
+};
+
+// @desc    Get opportunities: for NGO = pending review ones to accept; for Volunteer = only assigned to me
+// @route   GET /api/opportunities/match
+// @access  Private
+exports.getMatchedOpportunities = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Volunteer (agent): only see opportunities assigned to them by NGO
+    if (req.user.role === 'agent') {
+      const assigned = await Opportunity.find({
+        'assignedTo.volunteer': userId
+      })
+        .populate('createdBy', 'name email')
+        .populate('acceptedBy', 'name email')
+        .sort({ createdAt: -1 })
+        .limit(parseInt(req.query.limit || '20', 10));
+      return res.json({
+        success: true,
+        data: assigned,
+        meta: { total: assigned.length, returned: assigned.length }
+      });
+    }
+
+    // NGO: see opportunities pending NGO review
+    const now = new Date();
+    const limit = parseInt(req.query.limit || '20', 10);
+    const opportunities = await Opportunity.find({
+      status: 'pending_review',
+      startDate: { $lte: now },
+      endDate: { $gte: now }
+    })
+      .populate('createdBy', 'name email phone')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    res.json({
+      success: true,
+      data: opportunities,
+      meta: {
+        total: opportunities.length,
+        returned: opportunities.length
+      }
+    });
+  } catch (error) {
+    console.error('Error matching opportunities:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error matching opportunities'
+    });
+  }
+};
+
+// @desc    NGO rejects an opportunity (with optional reason)
+// @route   POST /api/opportunities/:id/reject
+// @access  Private (NGO only)
+exports.rejectOpportunity = async (req, res) => {
+  try {
+    if (req.user.role !== 'ngo') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only NGOs can reject opportunities'
+      });
+    }
+
+    const { reason } = req.body;
+    const opportunity = await Opportunity.findById(req.params.id);
+
+    if (!opportunity) {
+      return res.status(404).json({
+        success: false,
+        message: 'Opportunity not found'
+      });
+    }
+
+    if (!['pending_review', 'accepted'].includes(opportunity.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Only pending or accepted opportunities can be rejected'
+      });
+    }
+
+    opportunity.status = 'rejected';
+    opportunity.rejectionReason = reason || 'No reason provided';
+    await opportunity.save();
+
+    // Notify the user who posted the opportunity
+    await Notification.create({
+      user: opportunity.createdBy,
+      title: 'Opportunity Rejected',
+      message: `Your opportunity "${opportunity.title}" was rejected by the NGO.${reason ? ` Reason: ${reason}` : ''}`,
+      type: 'info'
+    });
+
+    res.json({
+      success: true,
+      message: 'Opportunity rejected successfully',
+      data: opportunity
+    });
+  } catch (error) {
+    console.error('Error rejecting opportunity:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error rejecting opportunity'
+    });
+  }
+};
+
+// @desc    Volunteer marks opportunity as completed
+// @route   POST /api/opportunities/:id/complete
+// @access  Private (Agent only)
+exports.completeOpportunity = async (req, res) => {
+  try {
+    if (req.user.role !== 'agent') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only volunteers can complete opportunities'
+      });
+    }
+
+    const opportunity = await Opportunity.findById(req.params.id);
+
+    if (!opportunity) {
+      return res.status(404).json({
+        success: false,
+        message: 'Opportunity not found'
+      });
+    }
+
+    const isAssignedToAgent = opportunity.assignedTo.some(
+      (a) => a.volunteer.toString() === req.user._id.toString()
+    );
+
+    if (!isAssignedToAgent) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not assigned to this opportunity'
+      });
+    }
+
+    if (!['assigned', 'in_progress'].includes(opportunity.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Only assigned or in-progress opportunities can be completed'
+      });
+    }
+
+    opportunity.status = 'completed';
+    await opportunity.save();
+
+    // Notify user and NGO (if any)
+    const notifications = [];
+    notifications.push(Notification.create({
+      user: opportunity.createdBy,
+      title: 'Opportunity Completed',
+      message: `The opportunity "${opportunity.title}" has been marked as completed by the volunteer.`,
+      type: 'success'
+    }));
+
+    if (opportunity.acceptedBy) {
+      notifications.push(Notification.create({
+        user: opportunity.acceptedBy,
+        title: 'Opportunity Completed',
+        message: `The opportunity "${opportunity.title}" you coordinated has been marked as completed.`,
+        type: 'success'
+      }));
+    }
+
+    await Promise.all(notifications);
+
+    res.json({
+      success: true,
+      message: 'Opportunity marked as completed',
+      data: opportunity
+    });
+  } catch (error) {
+    console.error('Error completing opportunity:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error completing opportunity'
     });
   }
 };

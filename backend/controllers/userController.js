@@ -25,10 +25,28 @@ exports.getUserProfile = async (req, res) => {
 exports.getUserStats = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('wasteStats');
-    
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const defaultStats = {
+      totalPickups: 0,
+      totalWeight: 0,
+      plasticWeight: 0,
+      organicWeight: 0,
+      ewasteWeight: 0,
+      paperWeight: 0,
+      glassWeight: 0,
+      metalWeight: 0
+    };
+
     res.status(200).json({
       success: true,
-      stats: user.wasteStats
+      stats: user.wasteStats || defaultStats
     });
   } catch (error) {
     res.status(500).json({

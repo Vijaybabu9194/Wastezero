@@ -294,8 +294,9 @@ const Register = () => {
                       onChange={handleChange}
                       className="w-full px-4 py-3.5 bg-white border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-primary-100 focus:border-primary-500 outline-none transition-all text-gray-900 hover:border-gray-300 appearance-none cursor-pointer"
                     >
-                      <option value="user">🏠 User - Schedule Pickups</option>
-                      <option value="agent">🚛 Pickup Agent - Collect Waste</option>
+                      <option value="user">🏠 User - Post Opportunities</option>
+                      <option value="ngo">🏢 NGO - Coordinate Volunteers</option>
+                      <option value="agent">🚛 Volunteer - Execute Tasks</option>
                     </select>
                     <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
                       <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

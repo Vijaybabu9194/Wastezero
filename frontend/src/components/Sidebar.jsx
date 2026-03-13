@@ -8,7 +8,9 @@ import {
   Users,
   Truck,
   Settings,
-  Heart
+  Heart,
+  MessageCircle,
+  ClipboardList
 } from 'lucide-react'
 
 const Sidebar = () => {
@@ -18,14 +20,23 @@ const Sidebar = () => {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/schedule-pickup', icon: Calendar, label: 'Schedule Pickup' },
     { to: '/pickups', icon: Package, label: 'My Pickups' },
-    { to: '/opportunities', icon: Heart, label: 'Volunteer' },
+    { to: '/opportunities', icon: Heart, label: 'Opportunities' },
+    { to: '/opportunities/create', icon: ClipboardList, label: 'Post Opportunity' },
+    { to: '/messages', icon: MessageCircle, label: 'Messages' },
+    { to: '/profile', icon: Settings, label: 'Settings' }
+  ]
+
+  const ngoLinks = [
+    { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/messages', icon: MessageCircle, label: 'Messages' },
     { to: '/profile', icon: Settings, label: 'Settings' }
   ]
 
   const agentLinks = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/pickups', icon: Truck, label: 'Assigned Pickups' },
-    { to: '/opportunities', icon: Heart, label: 'Volunteer' },
+    { to: '/opportunities', icon: Heart, label: 'My Assigned Tasks' },
+    { to: '/messages', icon: MessageCircle, label: 'Messages' },
     { to: '/profile', icon: Settings, label: 'Settings' }
   ]
 
@@ -40,6 +51,7 @@ const Sidebar = () => {
 
   const links =
     user?.role === 'admin' ? adminLinks :
+    user?.role === 'ngo' ? ngoLinks :
     user?.role === 'agent' ? agentLinks :
     userLinks
 

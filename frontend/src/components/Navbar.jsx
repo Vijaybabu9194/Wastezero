@@ -1,16 +1,27 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { Bell, User, LogOut } from 'lucide-react'
+import { Bell, User, LogOut, MessageCircle } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import api from '../utils/api'
+import api, { messageApi } from '../utils/api'
 
 const Navbar = () => {
   const { user, logout } = useAuth()
+  const location = useLocation()
   const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   useEffect(() => {
     fetchUnreadCount()
+    fetchUnreadMessages()
   }, [])
+
+  // Refresh unread counts when user navigates to messages/notifications
+  useEffect(() => {
+    if (location.pathname === '/messages' || location.pathname === '/notifications') {
+      fetchUnreadCount()
+      fetchUnreadMessages()
+    }
+  }, [location.pathname])
 
   const fetchUnreadCount = async () => {
     try {
@@ -18,6 +29,15 @@ const Navbar = () => {
       setUnreadCount(response.data.unreadCount)
     } catch (error) {
       console.error('Error fetching notifications:', error)
+    }
+  }
+
+  const fetchUnreadMessages = async () => {
+    try {
+      const response = await messageApi.getUnreadCount()
+      setUnreadMessages(response.data.unreadCount)
+    } catch (error) {
+      console.error('Error fetching unread messages:', error)
     }
   }
 
@@ -40,6 +60,18 @@ const Navbar = () => {
               {unreadCount > 0 && (
                 <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
                   {unreadCount}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              to="/messages"
+              className="relative p-2 text-gray-600 hover:text-primary-600 rounded-full hover:bg-gray-100"
+            >
+              <MessageCircle className="w-6 h-6" />
+              {unreadMessages > 0 && (
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-green-600 rounded-full">
+                  {unreadMessages}
                 </span>
               )}
             </Link>

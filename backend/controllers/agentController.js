@@ -21,6 +21,39 @@ const deg2rad = (deg) => {
   return deg * (Math.PI / 180);
 };
 
+// @desc    List volunteers (agents) for NGO to assign opportunities
+// @route   GET /api/agents/volunteers
+// @access  Private (NGO or Admin)
+exports.getVolunteersList = async (req, res) => {
+  try {
+    const agents = await Agent.find({})
+      .populate('userId', 'name email phone skills address')
+      .sort({ createdAt: -1 })
+      .lean();
+    const volunteers = agents
+      .filter(a => a.userId)
+      .map(a => ({
+        _id: a._id,
+        userId: a.userId._id,
+        name: a.userId.name,
+        email: a.userId.email,
+        phone: a.userId.phone,
+        skills: a.userId.skills || [],
+        status: a.status,
+        isVerified: a.isVerified
+      }));
+    res.status(200).json({
+      success: true,
+      data: volunteers
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // @desc    Find available agents near pickup location
 // @route   POST /api/agents/find-available
 // @access  Private (Admin)

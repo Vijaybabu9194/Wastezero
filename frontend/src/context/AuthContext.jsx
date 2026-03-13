@@ -21,13 +21,13 @@ export const AuthProvider = ({ children }) => {
   // Initialize Socket.IO
   useEffect(() => {
     if (user && token) {
-      const newSocket = io('http://localhost:5000', {
+      const newSocket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001', {
         auth: { token }
       })
       
       newSocket.on('connect', () => {
         console.log('Socket connected')
-        newSocket.emit('join-room', user.id)
+        newSocket.emit('join-room', user._id || user.id)
       })
       
       setSocket(newSocket)

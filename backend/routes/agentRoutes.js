@@ -6,12 +6,14 @@ const {
   getAgentPickups,
   updatePickupStatus,
   updateLocation,
-  updateAgentStatus
+  updateAgentStatus,
+  getVolunteersList
 } = require('../controllers/agentController');
 const { protect, authorize } = require('../middleware/auth');
 
 router.use(protect);
 
+router.get('/volunteers', authorize('admin', 'ngo'), getVolunteersList);
 router.post('/find-available', authorize('admin'), findAvailableAgents);
 router.post('/assign', authorize('admin'), assignAgent);
 

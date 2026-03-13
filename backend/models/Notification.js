@@ -8,7 +8,7 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['pickup_scheduled', 'agent_assigned', 'pickup_started', 'pickup_completed', 'pickup_cancelled', 'system_alert'],
+    enum: ['pickup_scheduled', 'agent_assigned', 'pickup_assigned', 'pickup_released', 'pickup_started', 'pickup_in-progress', 'pickup_completed', 'pickup_cancelled', 'system_alert'],
     required: true
   },
   title: {

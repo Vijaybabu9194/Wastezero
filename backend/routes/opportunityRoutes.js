@@ -10,11 +10,18 @@ const {
   applyForOpportunity,
   manageVolunteerApplication,
   getMyApplications,
-  getMyOpportunities
+  getMyOpportunities,
+  getMatchedOpportunities,
+  acceptOpportunity,
+  assignOpportunity,
+  rejectOpportunity,
+  completeOpportunity
 } = require('../controllers/opportunityController');
 
 // Public routes
 router.get('/', getAllOpportunities);
+// Matched opportunities (NGO: open list; Volunteer: assigned) - must be before /:id
+router.get('/match/recommended', protect, getMatchedOpportunities);
 router.get('/:id', getOpportunityById);
 
 // Protected routes - require authentication
@@ -24,9 +31,15 @@ router.use(protect);
 router.get('/user/my-applications', getMyApplications);
 router.post('/:id/apply', applyForOpportunity);
 
-// Admin routes
+// Create: User (poster) or Admin
 router.post('/create', createOpportunity);
 router.get('/admin/my-opportunities', getMyOpportunities);
+// NGO: accept opportunity, then assign to volunteer, or reject
+router.post('/:id/accept', acceptOpportunity);
+router.post('/:id/assign', assignOpportunity);
+router.post('/:id/reject', rejectOpportunity);
+// Volunteer: mark assigned opportunity as completed
+router.post('/:id/complete', completeOpportunity);
 router.put('/:id', updateOpportunity);
 router.delete('/:id', deleteOpportunity);
 router.put('/:id/volunteers/:volunteerId', manageVolunteerApplication);

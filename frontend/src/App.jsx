@@ -1,5 +1,6 @@
 import CreateOpportunity from './pages/CreateOpportunity'
 import EditOpportunity from './pages/EditOpportunity'
+import Messages from './pages/Messages'
 
 
 
@@ -12,6 +13,7 @@ import Register from './pages/Register'
 import UserDashboard from './pages/UserDashboard'
 import AgentDashboard from './pages/AgentDashboard'
 import AdminDashboard from './pages/AdminDashboard'
+import NGODashboard from './pages/NGODashboard'
 import SchedulePickup from './pages/SchedulePickup'
 import Pickups from './pages/Pickups'
 import PickupDetail from './pages/PickupDetail'
@@ -42,8 +44,27 @@ function App() {
         {/* Dashboard Routes based on Role */}
         <Route path="/dashboard" element={
           user?.role === 'admin' ? <AdminDashboard /> :
+          user?.role === 'ngo' ? <NGODashboard /> :
           user?.role === 'agent' ? <AgentDashboard /> :
           <UserDashboard />
+        } />
+        
+        {/* Role-specific Dashboard Routes */}
+        <Route path="/dashboard/user" element={
+          user?.role === 'user' ? <UserDashboard /> : 
+          <Navigate to="/dashboard" />
+        } />
+        <Route path="/dashboard/ngo" element={
+          user?.role === 'ngo' ? <NGODashboard /> : 
+          <Navigate to="/dashboard" />
+        } />
+        <Route path="/dashboard/agent" element={
+          user?.role === 'agent' ? <AgentDashboard /> : 
+          <Navigate to="/dashboard" />
+        } />
+        <Route path="/dashboard/admin" element={
+          user?.role === 'admin' ? <AdminDashboard /> : 
+          <Navigate to="/dashboard" />
         } />
         
         {/* User Routes */}
@@ -52,6 +73,7 @@ function App() {
         <Route path="/pickups/:id" element={<PickupDetail />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/messages" element={<Messages />} />
         
         {/* Opportunity Routes */}
         <Route path="/opportunities" element={<Opportunities />} />

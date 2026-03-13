@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from "../utils/api";
 import toast from "react-hot-toast";
 
 const CreateOpportunity = () => {
@@ -14,7 +14,7 @@ const CreateOpportunity = () => {
     location: "",
     startDate: "",
     endDate: "",
-    status: "active"
+    status: "open"
   });
 
   const handleChange = (e) => {
@@ -28,7 +28,7 @@ const CreateOpportunity = () => {
     e.preventDefault();
 
     try {
-      await axios.post("http://localhost:5000/api/opportunities/create", {
+      await api.post("/opportunities/create", {
         title: formData.title,
         description: formData.description,
         requiredSkills: formData.requiredSkills
@@ -145,8 +145,8 @@ const CreateOpportunity = () => {
           value={formData.status}
           onChange={handleChange}
         >
-          <option value="active">Open</option>
-          <option value="closed">Closed</option>
+          <option value="open">Open</option>
+          <option value="draft">Draft</option>
         </select>
 
         <button

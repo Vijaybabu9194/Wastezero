@@ -46,6 +46,15 @@ const pickupSchema = new mongoose.Schema({
     enum: ['scheduled', 'assigned', 'in-progress', 'completed', 'cancelled'],
     default: 'scheduled'
   },
+  // Track agents interested in the pickup (for future notifications)
+  interestedAgents: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Agent'
+  }],
+  // Timestamp when pickup was claimed by agent
+  claimedAt: {
+    type: Date
+  },
   actualWeight: {
     type: Number // Updated after pickup completion
   },
@@ -87,5 +96,6 @@ pickupSchema.pre('save', function(next) {
 pickupSchema.index({ userId: 1, createdAt: -1 });
 pickupSchema.index({ agentId: 1, status: 1 });
 pickupSchema.index({ status: 1, scheduledDate: 1 });
+pickupSchema.index({ status: 1, createdAt: -1 }); // For finding available pickups
 
 module.exports = mongoose.model('Pickup', pickupSchema);

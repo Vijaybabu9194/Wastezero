@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import api from '../utils/api'
 import toast from 'react-hot-toast'
 import { Package, Calendar, MapPin, Filter } from 'lucide-react'
+import PickupMap from '../components/PickupMap'
 
 const Pickups = () => {
   const [pickups, setPickups] = useState([])
@@ -52,6 +53,9 @@ const Pickups = () => {
           Schedule New Pickup
         </Link>
       </div>
+
+      {/* Hyderabad Map with user's pickups */}
+      <PickupMap mode="user" height="400px" />
 
       {/* Filter */}
       <div className="card">

@@ -30,4 +30,17 @@ api.interceptors.response.use(
   }
 )
 
+// Message API endpoints
+export const messageApi = {
+  sendMessage: (data) => api.post('/messages/send', data),
+  getConversation: (userId, limit = 50, skip = 0) => 
+    api.get(`/messages/conversation/${userId}`, { params: { limit, skip } }),
+  getConversations: () => api.get('/messages/conversations'),
+  getPickupMessages: (pickupId) => api.get(`/messages/pickup/${pickupId}`),
+  getUnreadCount: () => api.get('/messages/unread-count'),
+  markAsRead: (messageId) => api.put(`/messages/${messageId}/read`),
+  deleteMessage: (messageId) => api.delete(`/messages/${messageId}`),
+  searchMessages: (query) => api.get(`/messages/search/${query}`)
+}
+
 export default api

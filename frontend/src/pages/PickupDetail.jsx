@@ -13,6 +13,7 @@ import {
   XCircle,
   ArrowLeft
 } from 'lucide-react'
+import HyderabadMap from '../components/HyderabadMap'
 
 const PickupDetail = () => {
   const { id } = useParams()
@@ -158,9 +159,9 @@ const PickupDetail = () => {
           </div>
         </div>
 
-        {/* Address Info */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+        {/* Address + Map Info */}
+        <div className="card space-y-3">
+          <h2 className="text-lg font-semibold text-gray-800 mb-1 flex items-center">
             <MapPin className="w-5 h-5 mr-2" />
             Pickup Address
           </h2>
@@ -169,6 +170,11 @@ const PickupDetail = () => {
             <p>{pickup.pickupAddress?.city}, {pickup.pickupAddress?.state}</p>
             <p>{pickup.pickupAddress?.zipCode}</p>
           </div>
+          <HyderabadMap
+            centerOn={pickup.pickupAddress?.coordinates}
+            marker={pickup.pickupAddress?.coordinates}
+            height="260px"
+          />
         </div>
 
         {/* User Info (for agents) */}
