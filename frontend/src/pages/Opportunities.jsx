@@ -45,6 +45,17 @@ const Opportunities = () => {
   const fetchOpportunities = async () => {
     try {
       setLoading(true);
+      const params = new URLSearchParams();
+      if (filters.search) params.append('search', filters.search);
+      if (filters.category !== 'all') params.append('category', filters.category);
+      if (filters.status) params.append('status', filters.status);
+
+      if (user?.role === 'admin') {
+        const response = await api.get(`/admin/opportunities?${params.toString()}`);
+        setOpportunities(response.data.opportunities || []);
+        return;
+      }
+
       // Volunteer (agent): only see tasks assigned by NGO
       if (user?.role === 'agent') {
         const response = await api.get('/opportunities/match/recommended');
@@ -57,10 +68,6 @@ const Opportunities = () => {
         setOpportunities(response.data.data || []);
         return;
       }
-      const params = new URLSearchParams();
-      if (filters.search) params.append('search', filters.search);
-      if (filters.category !== 'all') params.append('category', filters.category);
-      if (filters.status) params.append('status', filters.status);
 
       const response = await api.get(`/opportunities?${params.toString()}`);
       setOpportunities(response.data.data || []);
@@ -97,11 +104,19 @@ const Opportunities = () => {
     }
 
     try {
-      await api.delete(`/opportunities/${opportunityId}`);
-      toast.success('Opportunity deleted successfully');
+      const reason = window.prompt('Reason for removal (optional):') || '';
+      if (user?.role === 'admin') {
+        await api.delete(`/admin/opportunities/${opportunityId}`, {
+          data: { reason: reason.trim() }
+        });
+      } else {
+        await api.delete(`/opportunities/${opportunityId}`);
+      }
+
+      toast.success('Opportunity removed successfully');
       fetchOpportunities();
     } catch (error) {
-      toast.error('Error deleting opportunity');
+      toast.error(error.response?.data?.message || 'Error deleting opportunity');
     }
   };
 
@@ -207,10 +222,14 @@ const Opportunities = () => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               >
                 <option value="">All Statuses</option>
-                <option value="active">Active</option>
+                <option value="pending_review">Pending Review</option>
+                <option value="accepted">Accepted</option>
+                <option value="assigned">Assigned</option>
+                <option value="in_progress">In Progress</option>
                 <option value="draft">Draft</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
+                <option value="rejected">Rejected</option>
               </select>
             </div>
           )}

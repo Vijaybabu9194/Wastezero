@@ -30,6 +30,13 @@ exports.protect = async (req, res, next) => {
           message: 'User not found'
         });
       }
+
+      if (req.user.isActive === false) {
+        return res.status(403).json({
+          success: false,
+          message: req.user.suspensionReason || 'Your account has been suspended. Please contact an administrator.'
+        });
+      }
       
       next();
     } catch (error) {

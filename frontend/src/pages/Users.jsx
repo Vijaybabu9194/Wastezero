@@ -21,6 +21,7 @@ const Users = () => {
   const [filters, setFilters] = useState({
     search: '',
     role: '',
+    status: '',
     page: 1,
     limit: 20
   });
@@ -39,6 +40,7 @@ const Users = () => {
       const params = new URLSearchParams();
       if (filters.search) params.append('search', filters.search);
       if (filters.role) params.append('role', filters.role);
+      if (filters.status) params.append('status', filters.status);
       params.append('page', filters.page);
       params.append('limit', filters.limit);
 
@@ -55,13 +57,27 @@ const Users = () => {
     }
   };
 
-  const handleToggleStatus = async (userId) => {
+  const handleUpdateStatus = async (user) => {
     try {
-      await api.put(`/admin/users/${userId}/toggle-status`);
-      toast.success('User status updated successfully');
+      const nextIsActive = user.isActive === false;
+      const reason = !nextIsActive
+        ? window.prompt('Enter suspension reason (required):')
+        : '';
+
+      if (!nextIsActive && (!reason || !reason.trim())) {
+        toast.error('Suspension reason is required');
+        return;
+      }
+
+      await api.put(`/admin/users/${user._id}/status`, {
+        isActive: nextIsActive,
+        reason: reason?.trim()
+      });
+
+      toast.success(nextIsActive ? 'User restored successfully' : 'User suspended successfully');
       fetchUsers();
     } catch (error) {
-      toast.error('Error updating user status');
+      toast.error(error.response?.data?.message || 'Error updating user status');
     }
   };
 
@@ -101,7 +117,7 @@ const Users = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="md:col-span-2">
             <label className="block text-gray-700 font-medium mb-2">
               <Search className="inline w-4 h-4 mr-1" />
@@ -130,6 +146,21 @@ const Users = () => {
               <option value="user">User</option>
               <option value="agent">Agent</option>
               <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-gray-700 font-medium mb-2">
+              Status
+            </label>
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value, page: 1 })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
             </select>
           </div>
         </div>
@@ -233,17 +264,20 @@ const Users = () => {
                       }`}>
                         {user.isActive !== false ? 'Active' : 'Inactive'}
                       </span>
+                      {user.isActive === false && user.suspensionReason && (
+                        <p className="text-xs text-red-600 mt-2 max-w-xs">{user.suspensionReason}</p>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
-                        onClick={() => handleToggleStatus(user._id)}
+                        onClick={() => handleUpdateStatus(user)}
                         className={`px-3 py-1 rounded-lg transition ${
                           user.isActive !== false
                             ? 'bg-red-100 text-red-700 hover:bg-red-200'
                             : 'bg-green-100 text-green-700 hover:bg-green-200'
                         }`}
                       >
-                        {user.isActive !== false ? 'Deactivate' : 'Activate'}
+                        {user.isActive !== false ? 'Suspend' : 'Restore'}
                       </button>
                     </td>
                   </tr>

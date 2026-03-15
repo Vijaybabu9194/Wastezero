@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import api from '../utils/api'
 import toast from 'react-hot-toast'
-import { Users, Package, Truck, TrendingUp, BarChart } from 'lucide-react'
+import { Users, Package, Truck, TrendingUp, BarChart3 } from 'lucide-react'
 import { LineChart, Line, BarChart as ReBarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
 const AdminDashboard = () => {
@@ -37,8 +37,10 @@ const AdminDashboard = () => {
   })) || []
 
   const monthlyData = stats?.monthlyTrends?.map(item => ({
-    month: `${item._id.year}-${item._id.month}`,
-    pickups: item.count
+    month: item.label,
+    pickups: item.pickups,
+    opportunities: item.opportunities,
+    volunteerResponses: item.volunteerResponses
   })) || []
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D']
@@ -95,7 +97,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="card">
           <h3 className="text-sm font-semibold text-gray-600 mb-2">Completed Pickups</h3>
           <p className="text-2xl font-bold text-green-600">{stats?.completedPickups || 0}</p>
@@ -107,6 +109,14 @@ const AdminDashboard = () => {
         <div className="card">
           <h3 className="text-sm font-semibold text-gray-600 mb-2">Active Pickups</h3>
           <p className="text-2xl font-bold text-blue-600">{stats?.activePickups || 0}</p>
+        </div>
+        <div className="card">
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">Posted Opportunities</h3>
+          <p className="text-2xl font-bold text-indigo-600">{stats?.totalOpportunities || 0}</p>
+        </div>
+        <div className="card">
+          <h3 className="text-sm font-semibold text-gray-600 mb-2">Volunteer Responses</h3>
+          <p className="text-2xl font-bold text-rose-600">{stats?.totalVolunteerResponses || 0}</p>
         </div>
       </div>
 
@@ -142,7 +152,7 @@ const AdminDashboard = () => {
 
         {/* Monthly Trends */}
         <div className="card">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Monthly Pickup Trends</h2>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Monthly Engagement Trends</h2>
           {monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={monthlyData}>
@@ -152,6 +162,8 @@ const AdminDashboard = () => {
                 <Tooltip />
                 <Legend />
                 <Line type="monotone" dataKey="pickups" stroke="#22c55e" strokeWidth={2} />
+                <Line type="monotone" dataKey="opportunities" stroke="#6366f1" strokeWidth={2} />
+                <Line type="monotone" dataKey="volunteerResponses" stroke="#f43f5e" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -178,6 +190,11 @@ const AdminDashboard = () => {
             <Package className="w-8 h-8 text-purple-600 mb-2" />
             <h3 className="font-semibold text-gray-800">View Pickups</h3>
             <p className="text-sm text-gray-600">Monitor all pickup requests</p>
+          </a>
+          <a href="/reports" className="p-4 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors">
+            <BarChart3 className="w-8 h-8 text-rose-600 mb-2" />
+            <h3 className="font-semibold text-gray-800">Engagement Reports</h3>
+            <p className="text-sm text-gray-600">View user activity and volunteering trends</p>
           </a>
         </div>
       </div>

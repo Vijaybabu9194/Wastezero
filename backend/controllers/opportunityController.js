@@ -51,7 +51,7 @@ exports.createOpportunity = async (req, res) => {
         message: 'Only users (opportunity posters) or administrators can create opportunities'
       });
     }
-+
+
     // Enforce initial status based on role:
     // - Regular users: always start in pending_review (NGO must review)
     // - Admins: may explicitly set a status, otherwise default to pending_review

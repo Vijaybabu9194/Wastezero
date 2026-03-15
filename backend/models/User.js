@@ -58,6 +58,20 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  suspensionReason: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  suspendedAt: {
+    type: Date,
+    default: null
+  },
+  suspendedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   profileImage: String,
   otp: {
     type: String,

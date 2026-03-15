@@ -10,7 +10,7 @@ const { Server } = require('socket.io');
 // Load environment variables
 dotenv.config();
 
-console.log("ENV VALUE:", process.env.MONGO_URI);
+console.log("ENV VALUE:", process.env.MONGODB_URI);
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -222,7 +222,7 @@ app.use((err, req, res, next) => {
 
 // Database connection
 const PORT = process.env.PORT || 5001;
-const MONGODB_URI = process.env.MONGO_URI;
+const MONGODB_URI = process.env.MONGODB_URI;
 
 console.log("Mongo URI:", MONGODB_URI);
 

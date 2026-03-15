@@ -1,14 +1,21 @@
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 
-// Fix default icon paths for Leaflet in bundlers
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).toString(),
-  iconUrl: new URL('leaflet/dist/images/marker-icon.png', import.meta.url).toString(),
-  shadowUrl: new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).toString()
+// Fix default icon paths for Leaflet in Vite bundler
+const DefaultIcon = L.icon({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
 })
+L.Marker.prototype.options.icon = DefaultIcon
 
 const HYDERABAD_CENTER = [17.385044, 78.486671]
 
@@ -60,7 +67,7 @@ const HyderabadMap = ({
         {onSelect && <ClickHandler onSelect={onSelect} />}
 
         {marker && marker.lat && marker.lng && (
-          <Marker position={[marker.lat, marker.lng]}>
+          <Marker position={[marker.lat, marker.lng]} icon={DefaultIcon}>
             <Popup>Pickup location</Popup>
           </Marker>
         )}
@@ -87,7 +94,7 @@ const HyderabadMap = ({
           }
 
           return (
-            <Marker key={m.id} position={[m.lat, m.lng]} icon={icon}>
+            <Marker key={m.id} position={[m.lat, m.lng]} icon={icon || DefaultIcon}>
               {m.popupContent && <Popup>{m.popupContent}</Popup>}
             </Marker>
           )
