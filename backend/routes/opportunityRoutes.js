@@ -12,6 +12,7 @@ const {
   getMyApplications,
   getMyOpportunities,
   getMatchedOpportunities,
+  getOpportunityVolunteerMatches,
   acceptOpportunity,
   assignOpportunity,
   rejectOpportunity,
@@ -36,6 +37,7 @@ router.post('/create', createOpportunity);
 router.get('/admin/my-opportunities', getMyOpportunities);
 // NGO: accept opportunity, then assign to volunteer, or reject
 router.post('/:id/accept', acceptOpportunity);
+router.get('/:id/volunteer-matches', getOpportunityVolunteerMatches);
 router.post('/:id/assign', assignOpportunity);
 router.post('/:id/reject', rejectOpportunity);
 // Volunteer: mark assigned opportunity as completed

@@ -6,9 +6,28 @@ const notificationSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  // Backward-compatible field used by some controllers.
+  // We normalize it into userId in pre-validation.
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   type: {
     type: String,
-    enum: ['pickup_scheduled', 'agent_assigned', 'pickup_assigned', 'pickup_released', 'pickup_started', 'pickup_in-progress', 'pickup_completed', 'pickup_cancelled', 'system_alert'],
+    enum: [
+      'pickup_scheduled',
+      'agent_assigned',
+      'pickup_assigned',
+      'pickup_released',
+      'pickup_started',
+      'pickup_in-progress',
+      'pickup_completed',
+      'pickup_cancelled',
+      'system_alert',
+      'info',
+      'success',
+      'new_pickup_assigned'
+    ],
     required: true
   },
   title: {
@@ -31,6 +50,13 @@ const notificationSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+});
+
+notificationSchema.pre('validate', function(next) {
+  if (!this.userId && this.user) {
+    this.userId = this.user;
+  }
+  next();
 });
 
 // Index for efficient queries

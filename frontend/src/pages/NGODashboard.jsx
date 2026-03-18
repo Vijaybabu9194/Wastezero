@@ -22,6 +22,7 @@ const NGODashboard = () => {
   const [openOpportunities, setOpenOpportunities] = useState([])
   const [acceptedOpportunities, setAcceptedOpportunities] = useState([])
   const [volunteers, setVolunteers] = useState([])
+  const [matchedVolunteersByOpportunity, setMatchedVolunteersByOpportunity] = useState({})
   const [loading, setLoading] = useState(true)
   const [acceptingId, setAcceptingId] = useState(null)
   const [assigningId, setAssigningId] = useState(null)
@@ -39,8 +40,29 @@ const NGODashboard = () => {
         api.get('/opportunities/admin/my-opportunities'),
         api.get('/agents/volunteers').catch(() => ({ data: { data: [] } }))
       ]).then(([oppRes, volRes]) => {
-        setAcceptedOpportunities(oppRes.data.data || [])
+        const acceptedItems = oppRes.data.data || []
+        setAcceptedOpportunities(acceptedItems)
         setVolunteers(volRes.data?.data || [])
+
+        const matchRequests = acceptedItems
+          .filter(opp => opp.status === 'accepted')
+          .map(opp =>
+            api.get(`/opportunities/${opp._id}/volunteer-matches?limit=20`)
+              .then(res => ({ oppId: opp._id, matches: res.data?.data || [] }))
+              .catch(() => ({ oppId: opp._id, matches: [] }))
+          )
+
+        if (matchRequests.length > 0) {
+          Promise.all(matchRequests).then((results) => {
+            const byOpp = {}
+            results.forEach(({ oppId, matches }) => {
+              byOpp[oppId] = matches
+            })
+            setMatchedVolunteersByOpportunity(byOpp)
+          })
+        } else {
+          setMatchedVolunteersByOpportunity({})
+        }
       }).catch(() => setAcceptedOpportunities([])).finally(() => setLoading(false))
     } else {
       api.get('/agents/volunteers').then(res => {
@@ -62,6 +84,14 @@ const NGODashboard = () => {
       if (activeTab === 'accepted') {
         const res = await api.get('/opportunities/admin/my-opportunities')
         setAcceptedOpportunities(res.data.data || [])
+        const refreshedMatches = await api
+          .get(`/opportunities/${oppId}/volunteer-matches?limit=20`)
+          .then(r => r.data?.data || [])
+          .catch(() => [])
+        setMatchedVolunteersByOpportunity(prev => ({
+          ...prev,
+          [oppId]: refreshedMatches
+        }))
       }
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to accept')
@@ -92,8 +122,10 @@ const NGODashboard = () => {
       await api.post(`/opportunities/${oppId}/assign`, { volunteerId })
       toast.success('Volunteer assigned.')
       setSelectedVolunteerId(prev => ({ ...prev, [oppId]: null }))
-      const res = await api.get('/opportunities/admin/my-opportunities')
-      setAcceptedOpportunities(res.data.data || [])
+      if (activeTab === 'accepted') {
+        const res = await api.get('/opportunities/admin/my-opportunities')
+        setAcceptedOpportunities(res.data.data || [])
+      }
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to assign')
     } finally {
@@ -205,17 +237,32 @@ const NGODashboard = () => {
                     <h3 className="font-semibold text-gray-900">{opp.title}</h3>
                     <p className="text-xs text-gray-500 mt-1">Status: {opp.status}</p>
                     <p className="text-sm text-gray-600 mt-1">{opp.description?.slice(0, 120)}...</p>
+                    {opp.status === 'accepted' && (
+                      <p className="text-xs text-emerald-700 mt-2">
+                        Suggestions ranked by waste-type match and volunteer distance.
+                      </p>
+                    )}
                     <div className="mt-3 flex flex-wrap items-center gap-3">
+                      {(() => {
+                        const matchedVolunteers = matchedVolunteersByOpportunity[opp._id] || []
+                        const volunteersForOpportunity = matchedVolunteers.length > 0 ? matchedVolunteers : volunteers
+                        return (
                       <select
                         value={selectedVolunteerId[opp._id] || ''}
                         onChange={e => setSelectedVolunteerId(prev => ({ ...prev, [opp._id]: e.target.value || null }))}
                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
                       >
                         <option value="">Select volunteer</option>
-                        {volunteers.map(v => (
-                          <option key={v.userId} value={v.userId}>{v.name} ({v.email})</option>
+                        {volunteersForOpportunity.map(v => (
+                          <option key={v.userId} value={v.userId}>
+                            {v.name} ({v.email})
+                            {typeof v.score === 'number' ? ` - ${Math.round(v.score * 100)}% match` : ''}
+                            {typeof v.distanceKm === 'number' ? `, ${v.distanceKm.toFixed(1)} km` : ''}
+                          </option>
                         ))}
                       </select>
+                        )
+                      })()}
                       <button
                         onClick={() => handleAssign(opp._id)}
                         disabled={assigningId === opp._id || !selectedVolunteerId[opp._id]}

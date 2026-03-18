@@ -1,5 +1,6 @@
 const Opportunity = require('../models/Opportunity');
 const User = require('../models/User');
+const Agent = require('../models/Agent');
 const Notification = require('../models/Notification');
 
 // Utility: Haversine distance in kilometers between two lat/lng points
@@ -22,6 +23,46 @@ const haversineDistanceKm = (coord1, coord2) => {
   return R * c;
 };
 
+const normalizeTag = (value) => String(value || '').trim().toLowerCase();
+
+const getOpportunityWasteTypes = (opportunity) => {
+  const explicitWasteTypes = Array.isArray(opportunity?.wasteTypes) ? opportunity.wasteTypes : [];
+  const fallbackSkills = Array.isArray(opportunity?.requiredSkills) ? opportunity.requiredSkills : [];
+  return [...explicitWasteTypes, ...fallbackSkills]
+    .map(normalizeTag)
+    .filter(Boolean);
+};
+
+const computeVolunteerMatchScore = ({ volunteerSkills, opportunityWasteTypes, distanceKm, maxDistanceKm }) => {
+  const volunteerSet = new Set((volunteerSkills || []).map(normalizeTag).filter(Boolean));
+  const requiredSet = new Set((opportunityWasteTypes || []).map(normalizeTag).filter(Boolean));
+
+  let wasteTypeScore = 0;
+  if (requiredSet.size > 0) {
+    let overlap = 0;
+    requiredSet.forEach((tag) => {
+      if (volunteerSet.has(tag)) {
+        overlap += 1;
+      }
+    });
+    wasteTypeScore = overlap / requiredSet.size;
+  }
+
+  let locationScore = 0.5;
+  if (typeof distanceKm === 'number') {
+    const bounded = Math.min(distanceKm, maxDistanceKm);
+    locationScore = 1 - (bounded / maxDistanceKm);
+  }
+
+  const totalScore = (wasteTypeScore * 0.7) + (locationScore * 0.3);
+
+  return {
+    totalScore,
+    wasteTypeScore,
+    locationScore
+  };
+};
+
 // @desc    Create a new volunteering opportunity (User posts, or Admin)
 // @route   POST /api/opportunities
 // @access  Private (User or Admin)
@@ -31,6 +72,7 @@ exports.createOpportunity = async (req, res) => {
       title,
       description,
       requiredSkills,
+      wasteTypes,
       duration,
       location,
       startDate,
@@ -77,6 +119,7 @@ exports.createOpportunity = async (req, res) => {
       title,
       description,
       requiredSkills: Array.isArray(requiredSkills) ? requiredSkills : (requiredSkills ? requiredSkills.split(',').map(s => s.trim()) : []),
+      wasteTypes: Array.isArray(wasteTypes) ? wasteTypes : (wasteTypes ? wasteTypes.split(',').map(s => s.trim()) : []),
       duration,
       location: finalLocation,
       startDate,
@@ -231,6 +274,7 @@ exports.updateOpportunity = async (req, res) => {
       title,
       description,
       requiredSkills,
+      wasteTypes,
       duration,
       location,
       startDate,
@@ -251,6 +295,11 @@ exports.updateOpportunity = async (req, res) => {
       opportunity.requiredSkills = Array.isArray(requiredSkills) 
         ? requiredSkills 
         : requiredSkills.split(',').map(s => s.trim());
+    }
+    if (wasteTypes) {
+      opportunity.wasteTypes = Array.isArray(wasteTypes)
+        ? wasteTypes
+        : wasteTypes.split(',').map(s => s.trim());
     }
     if (duration) opportunity.duration = duration;
     if (location) opportunity.location = location;
@@ -433,10 +482,20 @@ exports.acceptOpportunity = async (req, res) => {
     if (!opportunity) {
       return res.status(404).json({ success: false, message: 'Opportunity not found' });
     }
+
+    // Idempotent accept: if already accepted by this NGO, return success.
+    if (opportunity.status === 'accepted' && opportunity.acceptedBy?.toString() === req.user._id.toString()) {
+      return res.json({
+        success: true,
+        message: 'Opportunity is already accepted by you',
+        data: opportunity
+      });
+    }
+
     if (opportunity.status !== 'pending_review') {
       return res.status(400).json({
         success: false,
-        message: 'Opportunity is not pending review'
+        message: `Opportunity cannot be accepted in its current status (${opportunity.status})`
       });
     }
 
@@ -462,6 +521,119 @@ exports.acceptOpportunity = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Error accepting opportunity'
+    });
+  }
+};
+
+// @desc    Get ranked volunteer matches for an opportunity
+// @route   GET /api/opportunities/:id/volunteer-matches
+// @access  Private (NGO only)
+exports.getOpportunityVolunteerMatches = async (req, res) => {
+  try {
+    if (req.user.role !== 'ngo') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only NGOs can view volunteer matches'
+      });
+    }
+
+    const opportunity = await Opportunity.findById(req.params.id)
+      .populate('acceptedBy', '_id')
+      .lean();
+
+    if (!opportunity) {
+      return res.status(404).json({ success: false, message: 'Opportunity not found' });
+    }
+
+    if (opportunity.acceptedBy?._id?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the NGO that accepted this opportunity can view volunteer matches'
+      });
+    }
+
+    const maxDistanceKm = Math.max(parseInt(req.query.maxDistanceKm || '30', 10), 1);
+    const limit = Math.max(parseInt(req.query.limit || '20', 10), 1);
+
+    const volunteerAgents = await Agent.find({
+      isVerified: true,
+      status: { $in: ['available', 'offline', 'busy'] }
+    })
+      .populate('userId', 'name email phone role skills address isActive')
+      .lean();
+
+    const opportunityWasteTypes = getOpportunityWasteTypes(opportunity);
+    const alreadyAssigned = new Set((opportunity.assignedTo || []).map((a) => String(a.volunteer)));
+
+    const matchedVolunteers = volunteerAgents
+      .filter((agent) => agent?.userId && agent.userId.role === 'agent' && agent.userId.isActive)
+      .filter((agent) => !alreadyAssigned.has(String(agent.userId._id)))
+      .map((agent) => {
+        const user = agent.userId;
+        const volunteerCoords = user.address?.coordinates;
+        const opportunityCoords = opportunity.location?.coordinates;
+        const distanceKm = haversineDistanceKm(opportunityCoords, volunteerCoords);
+
+        const scores = computeVolunteerMatchScore({
+          volunteerSkills: user.skills || [],
+          opportunityWasteTypes,
+          distanceKm,
+          maxDistanceKm
+        });
+
+        const matchedWasteTypes = opportunityWasteTypes.filter((tag) =>
+          (user.skills || []).map(normalizeTag).includes(tag)
+        );
+
+        return {
+          userId: user._id,
+          agentProfileId: agent._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          skills: user.skills || [],
+          agentStatus: agent.status,
+          isVerified: agent.isVerified,
+          distanceKm,
+          score: Number(scores.totalScore.toFixed(4)),
+          scoreBreakdown: {
+            wasteType: Number(scores.wasteTypeScore.toFixed(4)),
+            location: Number(scores.locationScore.toFixed(4))
+          },
+          matchedWasteTypes,
+          matchReason: {
+            wasteTypesRequired: opportunityWasteTypes,
+            wasteTypesMatched: matchedWasteTypes.length,
+            withinDistance: typeof distanceKm === 'number' ? distanceKm <= maxDistanceKm : null
+          }
+        };
+      })
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (a.distanceKm == null && b.distanceKm == null) return 0;
+        if (a.distanceKm == null) return 1;
+        if (b.distanceKm == null) return -1;
+        return a.distanceKm - b.distanceKm;
+      })
+      .slice(0, limit);
+
+    res.json({
+      success: true,
+      data: matchedVolunteers,
+      meta: {
+        total: matchedVolunteers.length,
+        scoring: {
+          wasteTypeWeight: 0.7,
+          locationWeight: 0.3,
+          maxDistanceKm
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching volunteer matches:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error fetching volunteer matches'
     });
   }
 };
@@ -521,6 +693,20 @@ exports.assignOpportunity = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Volunteer is already assigned to this opportunity'
+      });
+    }
+
+    if ((opportunity.assignedTo || []).length >= opportunity.maxVolunteers) {
+      return res.status(400).json({
+        success: false,
+        message: 'No assignment slots remaining for this opportunity'
+      });
+    }
+
+    if (!volunteer.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: 'This volunteer account is inactive'
       });
     }
 

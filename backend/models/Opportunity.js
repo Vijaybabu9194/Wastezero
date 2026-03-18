@@ -17,6 +17,10 @@ const opportunitySchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
+  wasteTypes: [{
+    type: String,
+    trim: true
+  }],
   duration: {
     type: String,
     required: [true, 'Duration is required'],
