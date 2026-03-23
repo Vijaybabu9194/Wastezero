@@ -76,26 +76,26 @@ exports.claimPickup = async (req, res) => {
       });
     }
 
-    // Check if pickup is still available
-    if (pickup.status !== 'scheduled') {
-      return res.status(400).json({
-        success: false,
-        message: `This pickup is no longer available. Status: ${pickup.status}`
+    // Idempotent behavior: if the same agent already claimed it, return success.
+    if (
+      pickup.agentId &&
+      pickup.agentId.toString() === agent._id.toString() &&
+      pickup.status === 'assigned'
+    ) {
+      return res.status(200).json({
+        success: true,
+        message: 'Pickup already claimed by you',
+        pickup
       });
     }
 
-    // Check if agent has already claimed this pickup
-    if (pickup.agentId && pickup.agentId.toString() === agent._id.toString()) {
-      return res.status(400).json({
-        success: false,
-        message: 'You have already claimed this pickup'
-      });
-    }
-
-    // Prevent double-booking: Use atomic update with condition
-    // This ensures only one agent can claim the pickup
-    const updatedPickup = await Pickup.findByIdAndUpdate(
-      pickupId,
+    // Prevent double-booking using a conditional atomic update.
+    const updatedPickup = await Pickup.findOneAndUpdate(
+      {
+        _id: pickupId,
+        status: 'scheduled',
+        $or: [{ agentId: null }, { agentId: { $exists: false } }]
+      },
       {
         $set: {
           agentId: agent._id,
@@ -110,8 +110,32 @@ exports.claimPickup = async (req, res) => {
       }
     ).populate('userId', 'name email phone').populate('agentId', 'name phone vehicleNumber');
 
-    // Verify the claim was successful (double-check in case race condition)
-    if (updatedPickup.agentId.toString() !== agent._id.toString()) {
+    // If update did not happen, the pickup was claimed/updated by someone else.
+    if (!updatedPickup) {
+      const latestPickup = await Pickup.findById(pickupId).select('status agentId');
+      if (!latestPickup) {
+        return res.status(404).json({
+          success: false,
+          message: 'Pickup not found'
+        });
+      }
+
+      if (
+        latestPickup.agentId &&
+        latestPickup.agentId.toString() === agent._id.toString() &&
+        latestPickup.status === 'assigned'
+      ) {
+        const alreadyClaimedPickup = await Pickup.findById(pickupId)
+          .populate('userId', 'name email phone')
+          .populate('agentId', 'name phone vehicleNumber');
+
+        return res.status(200).json({
+          success: true,
+          message: 'Pickup already claimed by you',
+          pickup: alreadyClaimedPickup
+        });
+      }
+
       return res.status(409).json({
         success: false,
         message: 'Another agent claimed this pickup. Please try another pickup.'

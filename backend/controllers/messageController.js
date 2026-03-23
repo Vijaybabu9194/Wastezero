@@ -43,36 +43,39 @@ exports.sendMessage = async (req, res) => {
     const receiverUserId = receiverUser._id.toString();
     const senderRole = req.user.role;
     const receiverRole = receiverUser.role;
+    let isPickupContextMessage = false;
+    let effectivePickupId = pickupId || null;
 
-    // Three-role communication rules: User ↔ NGO (NGO initiates); NGO ↔ Volunteer; no User–Volunteer
-    if (senderRole === 'user' && receiverRole === 'agent') {
-      return res.status(403).json({
-        success: false,
-        message: 'Users cannot message volunteers directly. All coordination goes through the NGO.'
-      });
-    }
-    if (senderRole === 'agent' && receiverRole !== 'ngo') {
-      return res.status(403).json({
-        success: false,
-        message: 'Volunteers can only communicate with the NGO.'
-      });
-    }
-    if (senderRole === 'user' && receiverRole === 'ngo') {
-      const ngoStartedConversation = await Message.exists({
-        sender: receiverUserId,
-        receiver: senderUserId
-      });
-      if (!ngoStartedConversation) {
-        return res.status(403).json({
-          success: false,
-          message: 'You can only reply to messages from the NGO. The NGO must message you first.'
-        });
+    // Compatibility fallback: when user-agent chat is initiated from generic messages UI,
+    // pickupId may be omitted. Infer a shared active pickup if one exists.
+    if (
+      !effectivePickupId &&
+      ((senderRole === 'user' && receiverRole === 'agent') ||
+        (senderRole === 'agent' && receiverRole === 'user'))
+    ) {
+      const pickupUserId = senderRole === 'user' ? senderUserId : receiverUserId;
+      const pickupAgentUserId = senderRole === 'agent' ? senderUserId : receiverUserId;
+
+      const agentProfile = await Agent.findOne({ userId: pickupAgentUserId }).select('_id');
+      if (agentProfile?._id) {
+        const sharedPickup = await Pickup.findOne({
+          userId: pickupUserId,
+          agentId: agentProfile._id,
+          status: { $in: ['scheduled', 'assigned', 'in-progress'] }
+        })
+          .sort({ updatedAt: -1, createdAt: -1 })
+          .select('_id');
+
+        if (sharedPickup?._id) {
+          effectivePickupId = sharedPickup._id.toString();
+        }
       }
     }
 
-    // If pickupId is provided, enforce contextual chat rules
-    if (pickupId) {
-      const pickup = await Pickup.findById(pickupId)
+    // If pickupId is provided, enforce contextual chat rules first.
+    // Pickup-context messages may allow user <-> agent only for that pickup.
+    if (effectivePickupId) {
+      const pickup = await Pickup.findById(effectivePickupId)
         .populate('userId', '_id')
         .populate('agentId', 'userId');
 
@@ -83,14 +86,17 @@ exports.sendMessage = async (req, res) => {
         });
       }
 
-      // Determine the agent's underlying user id (if assigned)
+      // Determine the assigned agent's underlying user id.
       let pickupAgentUserId = null;
       if (pickup.agentId && pickup.agentId.userId) {
         pickupAgentUserId = pickup.agentId.userId.toString();
       }
 
-      const isSenderPickupUser = pickup.userId._id.toString() === senderUserId;
+      const pickupUserId = pickup.userId._id.toString();
+      const isSenderPickupUser = pickupUserId === senderUserId;
       const isSenderPickupAgent = pickupAgentUserId === senderUserId;
+      const isReceiverPickupUser = pickupUserId === receiverUserId;
+      const isReceiverPickupAgent = pickupAgentUserId === receiverUserId;
 
       if (!isSenderPickupUser && !isSenderPickupAgent) {
         return res.status(403).json({
@@ -99,19 +105,30 @@ exports.sendMessage = async (req, res) => {
         });
       }
 
-      // Chat is only allowed while pickup is pending/scheduled
-      if (pickup.status !== 'scheduled') {
+      if (!isReceiverPickupUser && !isReceiverPickupAgent) {
         return res.status(403).json({
           success: false,
-          message: 'Chat is locked for this pickup'
+          message: 'Receiver is not part of this pickup conversation'
         });
       }
+
+      if (!pickupAgentUserId) {
+        return res.status(403).json({
+          success: false,
+          message: 'This pickup is not yet assigned to an agent for direct chat'
+        });
+      }
+
+      isPickupContextMessage = true;
     }
+
+    // Generic chat (no pickup context) is allowed across platform roles.
+    // Pickup-context authorization remains enforced above when pickupId is present/resolved.
 
     const message = await Message.create({
       sender: senderUserId,
       receiver: receiverUserId,
-      pickupId: pickupId || null,
+      pickupId: effectivePickupId || null,
       content: content.trim()
     });
 
@@ -204,11 +221,13 @@ exports.getConversations = async (req, res) => {
     const currentUserId = req.user.id;
     const currentUserObjectId = new mongoose.Types.ObjectId(currentUserId);
     const role = req.user.role;
-    const roleFilter = role === 'user' || role === 'agent'
-      ? { 'userDetails.role': 'ngo' }
-      : role === 'ngo'
-        ? { 'userDetails.role': { $in: ['user', 'agent'] } }
-        : {}; // admin sees all
+    const roleFilter = role === 'user'
+      ? { 'userDetails.role': { $in: ['ngo', 'agent'] } }
+      : role === 'agent'
+        ? { 'userDetails.role': { $in: ['ngo', 'user'] } }
+        : role === 'ngo'
+          ? { 'userDetails.role': { $in: ['user', 'agent'] } }
+          : {}; // admin sees all
 
     // Get all unique users the current user has conversations with
     const conversations = await Message.aggregate([

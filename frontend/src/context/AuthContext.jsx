@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import axios from 'axios'
-import { io } from 'socket.io-client'
+import { connectSocket, disconnectSocket, getSocket, forceDisconnectSocket } from '../utils/socket'
 
 const AuthContext = createContext()
 
@@ -20,21 +20,19 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize Socket.IO
   useEffect(() => {
-    if (user && token) {
-      const newSocket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001', {
-        auth: { token }
-      })
-      
-      newSocket.on('connect', () => {
-        console.log('Socket connected')
-        newSocket.emit('join-room', user._id || user.id)
-      })
-      
-      setSocket(newSocket)
-      
-      return () => newSocket.close()
+    if (!user?._id || !token) {
+      setSocket(null)
+      return
     }
-  }, [user, token])
+
+    const sharedSocket = connectSocket(user._id)
+    sharedSocket.emit('join-room', user._id || user.id)
+    setSocket(sharedSocket)
+
+    return () => {
+      disconnectSocket(user._id)
+    }
+  }, [user?._id, user?.id, token])
 
   // Set axios defaults
   useEffect(() => {
@@ -97,13 +95,13 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = () => {
+    const userId = user?._id || user?.id
     localStorage.removeItem('token')
     setToken(null)
     setUser(null)
     delete axios.defaults.headers.common['Authorization']
-    if (socket) {
-      socket.close()
-    }
+    forceDisconnectSocket(userId)
+    setSocket(null)
   }
 
   const updateUser = (updatedUser) => {

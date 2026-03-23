@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ChatList from '../components/ChatList';
 import ChatWindow from '../components/ChatWindow';
-import { connectSocket, disconnectSocket } from '../utils/socket';
+import { connectSocket } from '../utils/socket';
 
 export default function Messages() {
   const { user } = useAuth();
@@ -15,12 +15,6 @@ export default function Messages() {
     if (user) {
       connectSocket(user._id);
     }
-
-    return () => {
-      if (user) {
-        disconnectSocket(user._id);
-      }
-    };
   }, [user]);
 
   // If navigated from AgentDashboard with an initial user, pre-select that conversation
@@ -52,7 +46,7 @@ export default function Messages() {
       </div>
 
       {/* Chat Window */}
-      <div className="flex-1 flex flex-col hidden md:flex">
+      <div className="hidden md:flex md:flex-1 md:flex-col">
         <ChatWindow
           selectedUser={selectedUser}
           currentUser={user}
@@ -62,7 +56,7 @@ export default function Messages() {
       </div>
 
       {/* Mobile view - show only one at a time */}
-      <div className="md:hidden flex-1 flex flex-col md:hidden">
+      <div className="flex-1 flex flex-col md:hidden">
         {selectedUser ? (
           <div className="w-full h-full flex flex-col">
             {/* Back button for mobile */}

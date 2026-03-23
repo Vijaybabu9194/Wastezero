@@ -55,7 +55,7 @@ const AgentDashboard = () => {
           prev.filter(p => p._id !== data.pickupId)
         )
         // If this agent claimed it, add to assigned list
-        if (data.agentId === user._id) {
+        if (data.claimedBy === user._id) {
           fetchAgentData()
         }
       })
@@ -137,6 +137,9 @@ const AgentDashboard = () => {
       toast.success('Pickup claimed successfully!')
       fetchAgentData()
     } catch (error) {
+      if (error.response?.status === 409) {
+        fetchAgentData()
+      }
       toast.error(error.response?.data?.message || 'Failed to claim pickup')
     } finally {
       setClaimingId(null)

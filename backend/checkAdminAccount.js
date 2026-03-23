@@ -16,6 +16,7 @@ const checkAdminAccount = async () => {
       console.log('❌ No admin account found\n');
       process.exit(1);
     }
+    
 
     console.log('Admin Account Status:');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');

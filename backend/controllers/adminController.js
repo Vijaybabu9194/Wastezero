@@ -354,7 +354,14 @@ exports.getAllPickups = async (req, res) => {
     
     const pickups = await Pickup.find(query)
       .populate('userId', 'name email phone')
-      .populate('agentId', 'name phone')
+      .populate({
+        path: 'agentId',
+        select: 'vehicleNumber status userId',
+        populate: {
+          path: 'userId',
+          select: 'name email phone'
+        }
+      })
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });

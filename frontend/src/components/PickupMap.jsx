@@ -71,6 +71,9 @@ const PickupMap = ({ mode = 'user', height = '360px' }) => {
       toast.success('Pickup claimed successfully!')
       fetchPickups()
     } catch (error) {
+      if (error.response?.status === 409) {
+        fetchPickups()
+      }
       toast.error(error.response?.data?.message || 'Failed to claim pickup')
     }
   }

@@ -1,24 +1,28 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import api from '../utils/api'
 import toast from 'react-hot-toast'
 import { Package, Calendar, MapPin, Filter } from 'lucide-react'
 import PickupMap from '../components/PickupMap'
 
 const Pickups = () => {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [pickups, setPickups] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
 
   useEffect(() => {
     fetchPickups()
-  }, [filter])
+  }, [filter, isAdmin])
 
   const fetchPickups = async () => {
     try {
-      const url = filter === 'all' ? '/pickups' : `/pickups?status=${filter}`
+      const baseUrl = isAdmin ? '/admin/pickups' : '/pickups'
+      const url = filter === 'all' ? baseUrl : `${baseUrl}?status=${filter}`
       const response = await api.get(url)
-      setPickups(response.data.pickups)
+      setPickups(response.data.pickups || [])
     } catch (error) {
       toast.error('Error loading pickups')
     } finally {
@@ -48,14 +52,16 @@ const Pickups = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-800">My Pickups</h1>
-        <Link to="/schedule-pickup" className="btn-primary">
-          Schedule New Pickup
-        </Link>
+        <h1 className="text-2xl font-bold text-gray-800">{isAdmin ? 'All Pickups' : 'My Pickups'}</h1>
+        {!isAdmin && (
+          <Link to="/schedule-pickup" className="btn-primary">
+            Schedule New Pickup
+          </Link>
+        )}
       </div>
 
-      {/* Hyderabad Map with user's pickups */}
-      <PickupMap mode="user" height="400px" />
+      {/* Hyderabad Map for users only */}
+      {!isAdmin && <PickupMap mode="user" height="400px" />}
 
       {/* Filter */}
       <div className="card">
@@ -86,12 +92,16 @@ const Pickups = () => {
           <h2 className="text-xl font-semibold text-gray-700 mb-2">No pickups found</h2>
           <p className="text-gray-500 mb-6">
             {filter === 'all'
-              ? "You haven't scheduled any pickups yet."
+              ? isAdmin
+                ? 'No pickup requests are available to monitor yet.'
+                : "You haven't scheduled any pickups yet."
               : `No ${filter} pickups found.`}
           </p>
-          <Link to="/schedule-pickup" className="btn-primary inline-block">
-            Schedule Your First Pickup
-          </Link>
+          {!isAdmin && (
+            <Link to="/schedule-pickup" className="btn-primary inline-block">
+              Schedule Your First Pickup
+            </Link>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6">
@@ -128,7 +138,7 @@ const Pickups = () => {
                     )}
                     {pickup.agentId && (
                       <p>
-                        <strong>Agent:</strong> {pickup.agentId.name || 'Assigned'}
+                        <strong>Agent:</strong> {pickup.agentId?.userId?.name || pickup.agentId?.name || 'Assigned'}
                       </p>
                     )}
                   </div>

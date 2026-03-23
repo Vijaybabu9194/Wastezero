@@ -141,10 +141,16 @@ export default function ChatWindow({ selectedUser, currentUser, initialPickup, i
     try {
       setSending(true);
 
+      const contextualPickupId =
+        initialPickupId ||
+        initialPickup?._id ||
+        null;
+
       // Send via REST API (persists to DB and backend emits receive-message for real-time)
       await messageApi.sendMessage({
         receiverId: selectedUser._id,
-        content: newMessage.trim()
+        content: newMessage.trim(),
+        ...(contextualPickupId ? { pickupId: contextualPickupId } : {})
       });
 
       // Add to local state

@@ -9,10 +9,18 @@
     "backend": "cd backend && npm run dev",
     "frontend": "cd frontend && npm run dev"
   },
-  "keywords": ["waste-management", "recycling", "environment", "sustainability"],
+  "keywords": [
+    "waste-management",
+    "recycling",
+    "environment",
+    "sustainability"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.3"
   }
 }

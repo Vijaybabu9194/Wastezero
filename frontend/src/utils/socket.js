@@ -3,6 +3,8 @@ import io from 'socket.io-client';
 const SOCKET_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
 
 let socket = null;
+let connectionRefCount = 0;
+let currentOnlineUserId = null;
 
 export const initializeSocket = () => {
   if (!socket) {
@@ -17,6 +19,9 @@ export const initializeSocket = () => {
 
     socket.on('connect', () => {
       console.log('Socket connected:', socket.id);
+      if (currentOnlineUserId) {
+        socket.emit('user-online', currentOnlineUserId);
+      }
     });
 
     socket.on('disconnect', () => {
@@ -37,19 +42,47 @@ export const getSocket = () => {
 
 export const connectSocket = (userId) => {
   const sock = getSocket();
+  connectionRefCount += 1;
+  currentOnlineUserId = userId || currentOnlineUserId;
+
   if (!sock.connected) {
     sock.connect();
+  } else if (currentOnlineUserId) {
+    sock.emit('user-online', currentOnlineUserId);
   }
-  sock.emit('user-online', userId);
+
+  return sock;
 };
 
 export const disconnectSocket = (userId) => {
-  const sock = getSocket();
-  if (sock) {
-    sock.emit('user-offline', userId);
-    sock.disconnect();
-    socket = null;
+  if (!socket) {
+    return;
   }
+
+  connectionRefCount = Math.max(0, connectionRefCount - 1);
+  if (connectionRefCount === 0) {
+    const offlineUserId = userId || currentOnlineUserId;
+    if (offlineUserId) {
+      socket.emit('user-offline', offlineUserId);
+    }
+    socket.disconnect();
+    currentOnlineUserId = null;
+  }
+};
+
+export const forceDisconnectSocket = (userId) => {
+  if (!socket) {
+    return;
+  }
+
+  const offlineUserId = userId || currentOnlineUserId;
+  if (offlineUserId) {
+    socket.emit('user-offline', offlineUserId);
+  }
+
+  socket.disconnect();
+  connectionRefCount = 0;
+  currentOnlineUserId = null;
 };
 
 export const sendMessageViaSocket = (senderId, receiverId, content) => {
