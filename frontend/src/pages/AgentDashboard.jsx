@@ -202,7 +202,7 @@ const AgentDashboard = () => {
       completed: 'bg-green-100 text-green-800',
       cancelled: 'bg-red-100 text-red-800'
     }
-    return badges[status] || 'bg-gray-100 text-gray-800'
+    return badges[status] || 'bg-gray-100 text-gray-800 dark:text-white'
   }
 
   const getStatusIcon = (status) => {
@@ -217,7 +217,7 @@ const AgentDashboard = () => {
   }
 
   const PickupCard = ({ pickup, isClaimed = false }) => (
-    <div className={`card border-l-4 ${isClaimed ? 'border-purple-600' : 'border-blue-600'} hover:shadow-lg transition-shadow`}>
+    <div className={`card bg-white dark:bg-gray-800 border-l-4 ${isClaimed ? 'border-purple-600' : 'border-blue-600'} hover:shadow-lg transition-shadow`}>
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div className="flex-1">
           {/* Status and Date */}
@@ -226,7 +226,7 @@ const AgentDashboard = () => {
               {getStatusIcon(pickup.status)}
               {pickup.status.charAt(0).toUpperCase() + pickup.status.slice(1)}
             </span>
-            <span className="text-sm text-gray-500 flex items-center gap-1">
+            <span className="text-sm text-gray-500 dark:text-gray-500 dark:text-gray-400 flex items-center gap-1">
               <Clock size={14} />
               {new Date(pickup.scheduledDate).toLocaleDateString()}
             </span>
@@ -234,13 +234,13 @@ const AgentDashboard = () => {
 
           {/* User Info */}
           <div className="mb-3">
-            <h3 className="font-bold text-gray-800 text-lg">{pickup.userId?.name}</h3>
-            <p className="text-sm text-gray-600 flex items-center gap-2 mt-1">
+            <h3 className="font-bold text-gray-800 dark:text-white text-lg">{pickup.userId?.name}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2 mt-1">
               <Phone size={14} />
               {pickup.userId?.phone}
             </p>
             {pickup.userId?.email && (
-              <p className="text-sm text-gray-600 flex items-center gap-2">
+              <p className="text-sm text-gray-600 dark:text-gray-300 flex items-center gap-2">
                 <Mail size={14} />
                 {pickup.userId?.email}
               </p>
@@ -248,42 +248,42 @@ const AgentDashboard = () => {
           </div>
 
           {/* Location */}
-          <div className="mb-3 bg-blue-50 p-3 rounded-lg">
-            <p className="text-sm font-semibold text-gray-700 flex items-center gap-2 mb-1">
+          <div className="mb-3 bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-1">
               <MapPin size={16} />
               Pickup Location
             </p>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               {pickup.pickupAddress?.street}, {pickup.pickupAddress?.city}
             </p>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               {pickup.pickupAddress?.state} {pickup.pickupAddress?.zipCode}
             </p>
           </div>
 
           {/* Waste Details */}
-          <div className="mb-3 bg-green-50 p-3 rounded-lg">
-            <p className="text-sm font-semibold text-gray-700 mb-2">Waste Details</p>
+          <div className="mb-3 bg-green-50 dark:bg-green-900/30 p-3 rounded-lg">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Waste Details</p>
             <div className="space-y-1">
               {pickup.wasteCategories?.map((waste, idx) => (
-                <p key={idx} className="text-sm text-gray-600">
+                <p key={idx} className="text-sm text-gray-600 dark:text-gray-300">
                   <span className="font-medium">{waste.type.toUpperCase()}:</span> {waste.estimatedWeight} kg
                 </p>
               ))}
-              <p className="text-sm font-semibold text-gray-700 mt-2">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-2">
                 Total: {pickup.wasteCategories?.reduce((sum, w) => sum + (Number(w.estimatedWeight) || 0), 0)} kg
               </p>
             </div>
           </div>
 
           {/* Time Slot */}
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             <span className="font-semibold">Time Slot:</span> <span className="capitalize">{pickup.scheduledTimeSlot}</span>
           </p>
 
           {pickup.notes && (
-            <div className="mt-2 p-2 bg-yellow-50 rounded border-l-2 border-yellow-400">
-              <p className="text-xs text-gray-600"><span className="font-semibold">Notes:</span> {pickup.notes}</p>
+            <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/30 rounded border-l-2 border-yellow-400">
+              <p className="text-xs text-gray-600 dark:text-gray-300"><span className="font-semibold">Notes:</span> {pickup.notes}</p>
             </div>
           )}
         </div>
@@ -409,13 +409,13 @@ const AgentDashboard = () => {
       <PickupMap mode="agent" />
 
       {/* Tab Navigation */}
-      <div className="flex gap-4 border-b border-gray-200">
+      <div className="flex gap-4 border-b border-gray-200 dark:border-gray-700">
         <button
           onClick={() => setActiveTab('available')}
           className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
             activeTab === 'available'
               ? 'text-green-600 border-green-600'
-              : 'text-gray-600 border-transparent hover:text-gray-800'
+              : 'text-gray-600 dark:text-gray-300 border-transparent hover:text-gray-800 dark:text-white'
           }`}
         >
           📍 Available Pickups ({stats.available})
@@ -425,7 +425,7 @@ const AgentDashboard = () => {
           className={`px-6 py-3 font-semibold border-b-2 transition-colors ${
             activeTab === 'assigned'
               ? 'text-green-600 border-green-600'
-              : 'text-gray-600 border-transparent hover:text-gray-800'
+              : 'text-gray-600 dark:text-gray-300 border-transparent hover:text-gray-800 dark:text-white'
           }`}
         >
           ✓ My Assignments ({stats.pending})
@@ -436,10 +436,10 @@ const AgentDashboard = () => {
       {activeTab === 'available' && (
         <div className="space-y-4">
           {availablePickups.length === 0 ? (
-            <div className="card text-center py-12">
+            <div className="card bg-white dark:bg-gray-800 text-center py-12">
               <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No available pickups right now</p>
-              <p className="text-gray-400 text-sm mt-2">Check back soon for new opportunities!</p>
+              <p className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-lg">No available pickups right now</p>
+              <p className="text-gray-400 dark:text-gray-300 text-sm mt-2">Check back soon for new opportunities!</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -454,10 +454,10 @@ const AgentDashboard = () => {
       {activeTab === 'assigned' && (
         <div className="space-y-4">
           {assignedPickups.length === 0 ? (
-            <div className="card text-center py-12">
+            <div className="card bg-white dark:bg-gray-800 text-center py-12">
               <CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-lg">No pickups assigned yet</p>
-              <p className="text-gray-400 text-sm mt-2">Head to "Available Pickups" to claim some!</p>
+              <p className="text-gray-500 dark:text-gray-500 dark:text-gray-400 text-lg">No pickups assigned yet</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Head to "Available Pickups" to claim some!</p>
             </div>
           ) : (
             <div className="space-y-4">

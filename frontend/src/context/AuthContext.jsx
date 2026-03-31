@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import axios from 'axios'
 import { connectSocket, disconnectSocket, getSocket, forceDisconnectSocket } from '../utils/socket'
+import api from '../utils/api'
 
 const AuthContext = createContext()
 
@@ -45,20 +46,20 @@ export const AuthProvider = ({ children }) => {
   }, [token])
 
   const fetchUser = async () => {
-    try {
-      const response = await axios.get('/api/auth/me')
-      setUser(response.data.user)
-    } catch (error) {
-      console.error('Error fetching user:', error)
-      logout()
-    } finally {
-      setLoading(false)
-    }
+  try {
+    const response = await api.get('/auth/me')  // ✅ uses Render URL
+    setUser(response.data.user)
+  } catch (error) {
+    console.error('Error fetching user:', error)
+    logout()
+  } finally {
+    setLoading(false)
   }
+}
 
   const login = async (email, password) => {
     try {
-      const response = await axios.post('/api/auth/login', { email, password })
+      const response = await api.post('/auth/login', { email, password })
       const { token, user } = response.data
       
       localStorage.setItem('token', token)
@@ -77,7 +78,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
-      const response = await axios.post('/api/auth/register', userData)
+      const response = await api.post('/auth/register', userData)
       const { token, user } = response.data
       
       localStorage.setItem('token', token)

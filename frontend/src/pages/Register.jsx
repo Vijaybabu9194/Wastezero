@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { Mail, Lock, User, Phone, MapPin, UserPlus, Eye, EyeOff, CheckCircle2, Circle, Sparkles, ShieldCheck } from 'lucide-react'
 import axios from 'axios'
+import api from '../utils/api'
 
 const Register = () => {
   const [step, setStep] = useState(1) // 1: registration form, 2: OTP verification
@@ -83,22 +84,16 @@ const Register = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone,
-          role: formData.role,
-          address: formData.address
-        })
-      })
+      const response = await api.post('/auth/register', {
+  name: formData.name,
+  email: formData.email,
+  password: formData.password,
+  phone: formData.phone,
+  role: formData.role,
+  address: formData.address
+})
 
-      const data = await response.json()
+      const data = response.data
 
       if (data.success) {
         setOtpData({ ...otpData, userId: data.userId })
@@ -125,15 +120,8 @@ const Register = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/verify-registration-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(otpData)
-      })
-
-      const data = await response.json()
+      const response = await api.post('/auth/verify-registration-otp', otpData)
+      const data = response.data
 
       if (data.success) {
         // Update localStorage
@@ -160,18 +148,13 @@ const Register = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/resend-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: otpData.userId,
-          purpose: 'registration'
-        })
-      })
+      const response = await api.post('/auth/resend-otp', {
+  userId: otpData.userId,
+  purpose: 'registration'
+})
+const data = response.data
 
-      const data = await response.json()
+      
 
       if (data.success) {
         toast.success('OTP resent successfully!')

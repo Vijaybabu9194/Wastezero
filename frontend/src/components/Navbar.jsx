@@ -42,7 +42,7 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
+    <nav className="bg-white dark:bg-gray-900 shadow-md fixed top-0 left-0 right-0 z-50">
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
@@ -51,10 +51,21 @@ const Navbar = () => {
             </Link>
           </div>
 
+
+
           <div className="flex items-center space-x-4">
+            <button
+              onClick={() => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+              }}
+              className="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-black dark:text-white"
+            >
+              🌙
+            </button>
             <Link
               to="/notifications"
-              className="relative p-2 text-gray-600 hover:text-primary-600 rounded-full hover:bg-gray-100"
+              className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-primary-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               <Bell className="w-6 h-6" />
               {unreadCount > 0 && (
@@ -66,7 +77,7 @@ const Navbar = () => {
 
             <Link
               to="/messages"
-              className="relative p-2 text-gray-600 hover:text-primary-600 rounded-full hover:bg-gray-100"
+              className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-primary-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               <MessageCircle className="w-6 h-6" />
               {unreadMessages > 0 && (
@@ -78,7 +89,7 @@ const Navbar = () => {
 
             <Link
               to="/profile"
-              className="flex items-center space-x-2 p-2 text-gray-700 hover:text-primary-600 rounded-lg hover:bg-gray-100"
+              className="flex items-center space-x-2 p-2 text-gray-700 dark:text-gray-200 hover:text-primary-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               <User className="w-6 h-6" />
               <span className="hidden md:inline">{user?.name}</span>
@@ -86,7 +97,7 @@ const Navbar = () => {
 
             <button
               onClick={logout}
-              className="flex items-center space-x-2 p-2 text-gray-700 hover:text-red-600 rounded-lg hover:bg-gray-100"
+              className="flex items-center space-x-2 p-2 text-gray-700 dark:text-gray-200 hover:text-red-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               <LogOut className="w-6 h-6" />
               <span className="hidden md:inline">Logout</span>

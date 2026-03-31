@@ -56,7 +56,7 @@ const Sidebar = () => {
     userLinks
 
   return (
-    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white shadow-md overflow-y-auto hidden lg:block">
+    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white dark:bg-gray-800 text-black dark:text-white shadow-md overflow-y-auto hidden lg:block">
       <nav className="p-4 space-y-2">
         {links.map((link) => (
           <NavLink
@@ -66,7 +66,7 @@ const Sidebar = () => {
               `flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
                 isActive
                   ? 'bg-primary-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`
             }
           >

@@ -1,8 +1,10 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/api'
+  baseURL: 'https://wastezero-deploy.onrender.com/api'
 })
+
+console.log("ENV API:", import.meta.env.VITE_API_URL)
 
 // Add token to requests
 api.interceptors.request.use(

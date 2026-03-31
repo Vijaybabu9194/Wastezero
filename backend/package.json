@@ -4,7 +4,7 @@
   "description": "WasteZero backend API for waste management platform",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js",
+    "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "node seed.js",
     "create-admin": "node createAdmin.js",
@@ -27,6 +27,8 @@
     "mongoose": "^7.6.3",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^8.0.1",
+    "resend": "^6.10.0",
+    "sib-api-v3-sdk": "^8.5.0",
     "socket.io": "^4.6.0"
   },
   "devDependencies": {

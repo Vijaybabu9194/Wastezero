@@ -1,5 +1,5 @@
 import "./Login.css";
-
+import api from '../utils/api'
 
 
 import { useState } from 'react'
@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { Mail, Lock, LogIn, Eye, EyeOff, Sparkles, ShieldCheck, Users, Briefcase } from 'lucide-react'
-import axios from 'axios'
+
 
 const Login = () => {
   const [step, setStep] = useState(1) // 1: credentials, 2: OTP
@@ -39,19 +39,13 @@ const Login = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          email: formData.email.trim().toLowerCase(),
-          password: formData.password,
-          userType: formData.userType
-        })
+        const response = await api.post('/auth/login', {
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+        userType: formData.userType
       })
 
-      const data = await response.json()
+      const data = response.data
 
       if (data.success) {
         if (data.requiresOTP) {
@@ -65,7 +59,7 @@ const Login = () => {
           localStorage.setItem('user', JSON.stringify(data.user))
           
           // Update axios defaults
-          axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
+          api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
           
           toast.success('Welcome back Admin!', { icon: '👑' })
           // Force page reload to trigger AuthContext initialization
@@ -97,15 +91,8 @@ const Login = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/verify-login-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(otpData)
-      })
-
-      const data = await response.json()
+      const response = await api.post('/auth/verify-login-otp', otpData)
+      const data = response.data
 
       if (data.success) {
         // Update localStorage
@@ -113,7 +100,7 @@ const Login = () => {
         localStorage.setItem('user', JSON.stringify(data.user))
         
         // Update axios defaults
-        axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
+        api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
         
         // Force page reload to trigger AuthContext initialization
         toast.success('Welcome back!', { icon: '🎉' })
@@ -132,18 +119,12 @@ const Login = () => {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/resend-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: otpData.userId,
-          purpose: 'login'
-        })
+      const response = await api.post('/auth/resend-otp', {
+      userId: otpData.userId,
+      purpose: 'login'
       })
-
-      const data = await response.json()
+      const data = response.data
+      
 
       if (data.success) {
         toast.success('OTP resent successfully!')

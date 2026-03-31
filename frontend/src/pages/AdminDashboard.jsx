@@ -98,24 +98,24 @@ const AdminDashboard = () => {
 
       {/* Secondary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <div className="card">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Completed Pickups</h3>
+        <div className="card bg-white dark:bg-gray-800">
+          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Completed Pickups</h3>
           <p className="text-2xl font-bold text-green-600">{stats?.completedPickups || 0}</p>
         </div>
-        <div className="card">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Pending Pickups</h3>
+        <div className="card bg-white dark:bg-gray-800">
+          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Pending Pickups</h3>
           <p className="text-2xl font-bold text-yellow-600">{stats?.pendingPickups || 0}</p>
         </div>
-        <div className="card">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Active Pickups</h3>
+        <div className="card bg-white dark:bg-gray-800">
+          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Active Pickups</h3>
           <p className="text-2xl font-bold text-blue-600">{stats?.activePickups || 0}</p>
         </div>
-        <div className="card">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Posted Opportunities</h3>
+        <div className="card bg-white dark:bg-gray-800">
+          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Posted Opportunities</h3>
           <p className="text-2xl font-bold text-indigo-600">{stats?.totalOpportunities || 0}</p>
         </div>
-        <div className="card">
-          <h3 className="text-sm font-semibold text-gray-600 mb-2">Volunteer Responses</h3>
+        <div className="card bg-white dark:bg-gray-800">
+          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">Volunteer Responses</h3>
           <p className="text-2xl font-bold text-rose-600">{stats?.totalVolunteerResponses || 0}</p>
         </div>
       </div>
@@ -123,8 +123,8 @@ const AdminDashboard = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Waste by Category */}
-        <div className="card">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Waste by Category</h2>
+        <div className="card bg-white dark:bg-gray-800">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Waste by Category</h2>
           {wasteCategoryData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -146,12 +146,12 @@ const AdminDashboard = () => {
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-gray-500 text-center py-8">No data available</p>
+            <p className="text-gray-500 dark:text-gray-400 text-center py-8">No data available</p>
           )}
         </div>
 
         {/* Monthly Trends */}
-        <div className="card">
+        <div className="card bg-white dark:bg-gray-800">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Monthly Engagement Trends</h2>
           {monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
@@ -173,28 +173,28 @@ const AdminDashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="card">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
+      <div className="card bg-white dark:bg-gray-800">
+        <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a href="/users" className="p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+          <a href="/users" className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800 transition-colors">
             <Users className="w-8 h-8 text-blue-600 mb-2" />
-            <h3 className="font-semibold text-gray-800">Manage Users</h3>
-            <p className="text-sm text-gray-600">View and manage all users</p>
+            <h3 className="font-semibold text-gray-800 dark:text-white">Manage Users</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">View and manage all users</p>
           </a>
-          <a href="/agents" className="p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+          <a href="/agents" className="p-4 bg-green-50 dark:bg-green-900/30 rounded-lg hover:bg-green-100 dark:hover:bg-green-800 transition-colors">
             <Truck className="w-8 h-8 text-green-600 mb-2" />
-            <h3 className="font-semibold text-gray-800">Manage Agents</h3>
-            <p className="text-sm text-gray-600">View and verify agents</p>
+            <h3 className="font-semibold text-gray-800 dark:text-white">Manage Agents</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">View and verify agents</p>
           </a>
-          <a href="/pickups" className="p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+          <a href="/pickups" className="p-4 bg-purple-50 dark:bg-purple-900/30 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-800 transition-colors">
             <Package className="w-8 h-8 text-purple-600 mb-2" />
-            <h3 className="font-semibold text-gray-800">View Pickups</h3>
-            <p className="text-sm text-gray-600">Monitor all pickup requests</p>
+            <h3 className="font-semibold text-gray-800 dark:text-white">View Pickups</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">Monitor all pickup requests</p>
           </a>
-          <a href="/reports" className="p-4 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors">
+          <a href="/reports" className="p-4 bg-rose-50 dark:bg-rose-900/30 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-800 transition-colors">
             <BarChart3 className="w-8 h-8 text-rose-600 mb-2" />
-            <h3 className="font-semibold text-gray-800">Engagement Reports</h3>
-            <p className="text-sm text-gray-600">View user activity and volunteering trends</p>
+            <h3 className="font-semibold text-gray-800 dark:text-white">Engagement Reports</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300">View user activity and volunteering trends</p>
           </a>
         </div>
       </div>
