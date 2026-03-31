@@ -17,3 +17,8 @@
 - Designed improved Opportunities UI
 - Added structured layout and better component organization
 - Enhanced login page styling
+
+
+Deployed Link: https://wastezero-deploy.vercel.app/login
+
+
